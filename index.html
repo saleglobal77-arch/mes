@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta charset="utf-8">
 
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<title>MES Timeline</title>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
 
 <style>
 
@@ -16,11 +19,35 @@ html,body{
     margin:0;
     padding:0;
     font-family:Arial;
-    overflow:hidden;
+    background:#0f172a;
+    color:white;
+}
+
+#topbar{
+    display:flex;
+    gap:10px;
+    padding:10px;
+}
+
+.kpi-box{
+    background:#1e293b;
+    border-radius:10px;
+    padding:15px;
+    width:180px;
+}
+
+.kpi-title{
+    font-size:14px;
+}
+
+.kpi-value{
+    font-size:30px;
+    font-weight:bold;
 }
 
 #calendar{
-    height:100vh;
+    height:85vh;
+    padding:10px;
 }
 
 </style>
@@ -28,6 +55,30 @@ html,body{
 </head>
 
 <body>
+
+<div id="topbar">
+
+    <div class="kpi-box">
+        <div class="kpi-title">RUNNING</div>
+        <div class="kpi-value" id="runCount">0</div>
+    </div>
+
+    <div class="kpi-box">
+        <div class="kpi-title">WAITING</div>
+        <div class="kpi-value" id="waitCount">0</div>
+    </div>
+
+    <div class="kpi-box">
+        <div class="kpi-title">DELAY</div>
+        <div class="kpi-value" id="delayCount">0</div>
+    </div>
+
+    <div class="kpi-box">
+        <div class="kpi-title">OUTPUT</div>
+        <div class="kpi-value" id="outputQty">0</div>
+    </div>
+
+</div>
 
 <div id="calendar"></div>
 
@@ -39,9 +90,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
 
-        schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+        schedulerLicenseKey:
+        'CC-Attribution-NonCommercial-NoDerivatives',
 
-        initialView: 'resourceTimelineDay',
+        initialView:'resourceTimelineDay',
 
         nowIndicator:true,
 
@@ -49,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         resourceAreaWidth:'120px',
 
-        resourceAreaHeaderContent:'Machine',
+        resourceAreaHeaderContent:'MACHINE',
 
         resources:[
             { id:'MC01', title:'MC01'},
@@ -59,44 +111,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         events:[
 
-            events: async function(fetchInfo, successCallback, failureCallback) {
-
-const url =
-'https://opensheet.elk.sh/1304611700/Sheet1';
-
-const response = await fetch(url);
-
-const data = await response.json();
-
-const events = data.map(row => ({
-
-title: row.Job,
-
-start: row.Start,
-
-end: row.End,
-
-resourceId: row.Machine,
-
-backgroundColor:
-row.Status == 'RUN' ? 'green' :
-row.Status == 'WAIT' ? 'orange' :
-row.Status == 'DELAY' ? 'red' :
-'gray'
-
-}));
-
-successCallback(events);
-
-},
-
+            {
+                id:'1',
+                resourceId:'MC01',
+                title:'JOB001',
+                start:'2026-05-27T08:00:00',
+                end:'2026-05-27T12:00:00',
+                backgroundColor:'green'
+            },
 
             {
                 id:'2',
                 resourceId:'MC02',
                 title:'JOB002',
                 start:'2026-05-27T09:00:00',
-                end:'2026-05-27T18:00:00'
+                end:'2026-05-27T18:00:00',
+                backgroundColor:'orange'
             },
 
             {
@@ -104,18 +134,45 @@ successCallback(events);
                 resourceId:'MC03',
                 title:'JOB003',
                 start:'2026-05-27T13:00:00',
-                end:'2026-05-27T20:00:00'
+                end:'2026-05-27T20:00:00',
+                backgroundColor:'red'
             }
 
-        ]
+        ],
+
+        eventDrop:function(info){
+
+            alert(
+                'JOB: ' +
+                info.event.title +
+                '\nNEW START: ' +
+                info.event.start
+            );
+
+        },
+
+        eventResize:function(info){
+
+            alert(
+                'Resize: ' +
+                info.event.title
+            );
+
+        }
 
     });
 
     calendar.render();
+
+    document.getElementById('runCount').innerText = 1;
+    document.getElementById('waitCount').innerText = 1;
+    document.getElementById('delayCount').innerText = 1;
+    document.getElementById('outputQty').innerText = 350;
 
 });
 
 </script>
 
 </body>
+
 </html>
