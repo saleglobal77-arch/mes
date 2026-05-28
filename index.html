@@ -1,4 +1,6 @@
-index.html
+# index.html
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -275,7 +277,7 @@ MES Scheduler PRO
 //
 
 const csvUrl =
-'https://docs.google.com/spreadsheets/d/1C6cHh07fcus6obT8i7L8BN3CIOVOtazplZv7rxIV0Rg/export?format=csv';
+'https://docs.google.com/spreadsheets/d/2094415544/export?format=csv';
 
 async function loadCSV(){
 
@@ -488,36 +490,82 @@ document.addEventListener('DOMContentLoaded', async function(){
 
 </body>
 </html>
-Cách dùng
-1. Tạo Google Sheet
+```
+
+# Cách dùng
+
+## 1. Tạo Google Sheet
+
 Tạo cột:
+
+```text
 Machine | Job | Start | End | Status | Qty
+```
+
 Ví dụ:
+
+```text
 MC01 | JOB001 | 2026-05-27 | 2026-06-12 | RUN | 100
 MC02 | JOB002 | 2026-05-29 | 2026-06-08 | WAIT | 50
 MC03 | JOB003 | 2026-06-01 | 2026-06-10 | DELAY | 20
-________________________________________
-2. Share Google Sheet
+```
+
+---
+
+## 2. Share Google Sheet
+
 Google Sheet → Share → Anyone with the link
-________________________________________
-3. Lấy SHEET ID
+
+---
+
+## 3. Lấy SHEET ID
+
 Ví dụ link:
+
+```text
 https://docs.google.com/spreadsheets/d/123456789/edit
+```
+
 Sheet ID là:
+
+```text
 123456789
-________________________________________
-4. Thay vào index.html
+```
+
+---
+
+## 4. Thay vào index.html
+
 Tìm:
+
+```javascript
 YOUR_SHEET_ID
+```
+
 và thay bằng ID thật.
-________________________________________
-5. Upload GitHub
+
+---
+
+## 5. Upload GitHub
+
 Upload file:
+
+```text
 index.html
+```
+
 lên GitHub.
-________________________________________
-6. Bật GitHub Pages
+
+---
+
+## 6. Bật GitHub Pages
+
 Settings → Pages → Deploy from branch → main → Save
-________________________________________
-7. Mở website
+
+---
+
+## 7. Mở website
+
+```text
 https://username.github.io/mes/
+```
