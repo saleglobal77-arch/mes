@@ -2,56 +2,38 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MES Scheduler PRO - CNC Japan</title>
+    <title>MES Timeline - JAPAN MC</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; }
-        
-        /* KPI */
+        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
+        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* Màu trạng thái */
+        .completed { background: #10b981 !important; border: none !important; }
+        .running { background: #3b82f6 !important; border: none !important; }
+        .waiting { background: #f59e0b !important; border: none !important; }
+        .delay { background: #ef4444 !important; border: none !important; }
 
-        /* LỊCH */
-        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; }
-
-        /* --- THANH TRƯỢT NGANG (SCROLLBAR) --- */
-        /* Làm cho thanh trượt dưới đáy to và dễ kéo hơn */
-        .fc-scroller::-webkit-scrollbar { height: 12px; }
-        .fc-scroller::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .fc-scroller::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 10px; border: 2px solid #f1f1f1; }
-        .fc-scroller::-webkit-scrollbar-thumb:hover { background: #15803d; }
-
-        /* MÀU NỀN CỘT */
+        /* Cuối tuần & Ngày cũ */
         .sat-day { background-color: #e6f7ff !important; }
         .sun-day { background-color: #fff1f0 !important; }
         .past-day { background-color: #fff9c4 !important; }
         .today-day { background-color: #f6ffed !important; border: 1px solid #52c41a !important; }
-
-        /* Đường kẻ đỏ chỉ ngày hiện tại */
-        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 5; }
-
-        /* Màu chữ Thứ 7/CN trên tiêu đề */
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; background: #e6f7ff !important; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; background: #fff1f0 !important; }
-
-        /* Trạng thái công việc */
-        .run { background: #3b82f6 !important; border: none !important; cursor: pointer; }
-        .wait { background: #f59e0b !important; border: none !important; cursor: pointer; }
-        .delay { background: #ef4444 !important; border: none !important; cursor: pointer; }
-
-        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <span>MES Scheduler PRO (CNC Japan)</span>
-        <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
+        <span>JAPAN MC PRODUCTION MANAGEMENT</span>
+        <button onclick="initApp()" style="margin-left:10px; cursor:pointer;">🔄 REFRESH</button>
     </div>
     <span id="currentTime"></span>
 </div>
@@ -61,13 +43,14 @@
         <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
         <div class="kpi-box"><div>WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
         <div class="kpi-box"><div>DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
-        <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
+        <div class="kpi-box"><div>OUTPUT (QTY)</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
     <div id="calendar"></div>
 </div>
 
 <script>
-const csvUrl = 'https://docs.google.com/spreadsheets/d/1C6cHh07fcus6obT8i7L8BN3CIOVOtazplZv7rxIV0Rg/gviz/tq?tqx=out:csv';
+// THAY LINK CSV CỦA TAB KH_NhanHang VÀO ĐÂY
+const csvUrl = 'DÁN_LINK_CSV_CỦA_BẠN_VÀO_ĐÂY';
 
 async function initApp() {
     try {
@@ -81,30 +64,31 @@ async function initApp() {
             return obj;
         });
 
-        const todayStr = new Date().toISOString().split('T')[0];
         const todayDate = new Date();
         todayDate.setHours(0,0,0,0);
+        const todayStr = todayDate.toISOString().split('T')[0];
 
-        let machineSet = new Set();
-        let events = [];
+        let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
         data.forEach(item => {
-            if (!item.Machine) return;
-            machineSet.add(item.Machine);
-            if(item.Status==='RUN') run++; else if(item.Status==='WAIT') wait++; else if(item.Status==='DELAY') delay++;
+            if (!item.Ten_May) return;
+            machineSet.add(item.Ten_May);
+            
+            // KPI Logic (Dựa trên cột Status)
+            let status = (item.Status || '').toUpperCase();
+            if(status === 'COMPLETED') run++; 
+            else if(status === 'WAITING') wait++; 
+            else if(status === 'DELAY') delay++;
             qty += Number(item.Qty || 0);
 
             events.push({
-                resourceId: item.Machine,
-                title: item.Job,
-                start: item.Start,
-                end: item.End,
-                className: item.Status.toLowerCase(),
-                // Lưu Memo vào dữ liệu ẩn của event
-                extendedProps: {
-                    memo: item.Memo || "N/A"
-                }
+                resourceId: item.Ten_May,
+                title: item.Ma_Hang + " (" + item.Ten_Cong_Doan + ")",
+                start: item.Ngay_Bat_Dau,
+                end: item.Ngay_Ket_Thuc,
+                className: status.toLowerCase(),
+                extendedProps: { memo: item.Memo || "" }
             });
         });
 
@@ -115,61 +99,35 @@ async function initApp() {
 
         const calendarEl = document.getElementById('calendar');
         calendarEl.innerHTML = '';
-        
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
             locale: 'ja',
             height: '100%',
-            resourceAreaWidth: '100px',
+            resourceAreaWidth: '140px',
             resourceAreaHeaderContent: 'MACHINE',
-            slotMinWidth: 40, // Tăng độ rộng cột để hiện thanh cuộn ngang dễ kéo hơn
+            slotMinWidth: 35,
             nowIndicator: true,
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
-
-            // TÔ MÀU CỘT
             slotDidMount: function(arg) {
                 const dateStr = arg.date.toISOString().split('T')[0];
                 const day = arg.date.getDay();
-                if (dateStr === todayStr) {
-                    arg.el.classList.add('today-day');
-                } else if (day === 6) {
-                    arg.el.classList.add('sat-day');
-                } else if (day === 0) {
-                    arg.el.classList.add('sun-day');
-                }
-                if (arg.date < todayDate && dateStr !== todayStr) {
-                    arg.el.classList.add('past-day');
-                }
+                if (dateStr === todayStr) arg.el.classList.add('today-day');
+                else if (day === 6) arg.el.classList.add('sat-day');
+                else if (day === 0) arg.el.classList.add('sun-day');
+                if (arg.date < todayDate && dateStr !== todayStr) arg.el.classList.add('past-day');
             },
-
-            // TÔ MÀU CHỮ TIÊU ĐỀ
-            slotLabelDidMount: function(arg) {
-                const day = arg.date.getDay();
-                if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
-                if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
-            },
-
-            // --- CHỨC NĂNG KÍCH CHUỘT HIỆN MEMO ---
             eventClick: function(info) {
-                alert(
-                    "【機種: " + info.event.resourceId + "】\n" +
-                    "Job: " + info.event.title + "\n" +
-                    "Memo: " + info.event.extendedProps.memo
-                );
+                alert("Máy: " + info.event.resourceId + "\nMã hàng: " + info.event.title + "\nGhi chú: " + info.event.extendedProps.memo);
             }
         });
-
         calendar.render();
     } catch (e) { console.error(e); }
 }
 
-setInterval(() => {
-    document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP');
-}, 1000);
-
+setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
 initApp();
 </script>
 </body>
