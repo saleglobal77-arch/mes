@@ -10,38 +10,30 @@
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; }
         
-        /* KPI */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
-        .kpi-title { font-size: 10px; color: #6b7280; font-weight: bold; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
 
-        /* Lịch */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .fc-timeline-slot-label { font-size: 10px !important; }
-        .fc-event-title { font-size: 10px !important; }
 
-        .btn-refresh { 
-            background: #ffffff; color: #16a34a; border: none; padding: 4px 10px; 
-            border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;
-            margin-left: 10px;
-        }
-        .btn-refresh:hover { background: #f0f0f0; }
+        /* --- MÀU NỀN CỘT (DÙNG !IMPORTANT ĐỂ ĐÈ LÊN MÀU MẶC ĐỊNH) --- */
+        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh dương nhạt */
+        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Đỏ nhạt */
+        .past-day { background-color: #fff9c4 !important; } /* Ngày cũ: Vàng nhạt */
+        .today-day { background-color: #f6ffed !important; border: 1px solid #52c41a !important; } /* Hôm nay: Xanh lá nhạt */
 
-        /* MÀU TRẠNG THÁI CÔNG VIỆC */
+        /* Đường kẻ đỏ chỉ ngày hôm nay */
+        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 5; }
+
+        /* Chỉnh màu chữ Thứ 7/CN trên thanh tiêu đề */
+        .fc-timeline-slot-label-sat { color: #0050b3 !important; background: #e6f7ff !important; }
+        .fc-timeline-slot-label-sun { color: #cf1322 !important; background: #fff1f0 !important; }
+
         .run { background: #3b82f6 !important; border: none !important; }
         .wait { background: #f59e0b !important; border: none !important; }
         .delay { background: #ef4444 !important; border: none !important; }
 
-        /* MÀU NỀN CHO CÁC CỘT NGÀY ĐẶC BIỆT */
-        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh dương cực nhạt */
-        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Đỏ/Hồng cực nhạt */
-        .past-day { background-color: #fff9c4 !important; } /* Ngày cũ: Vàng nhạt */
-        
-        /* Chỉnh màu chữ cho Thứ 7 và Chủ Nhật trên tiêu đề */
-        .fc-timeline-slot-label[data-date*="sat"], .fc-timeline-slot-label:contains('土') { color: #0050b3; }
-        .fc-timeline-slot-label[data-date*="sun"], .fc-timeline-slot-label:contains('日') { color: #cf1322; }
-
+        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -51,15 +43,15 @@
         <span>MES Scheduler PRO (CNC Japan)</span>
         <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
     </div>
-    <span id="currentTime" style="font-family: monospace;"></span>
+    <span id="currentTime"></span>
 </div>
 
 <div class="content">
     <div class="kpi-row">
-        <div class="kpi-box"><div class="kpi-title">RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
-        <div class="kpi-box"><div class="kpi-title">WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
-        <div class="kpi-box"><div class="kpi-title">DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
-        <div class="kpi-box"><div class="kpi-title">OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
+        <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
+        <div class="kpi-box"><div>WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
+        <div class="kpi-box"><div>DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
+        <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
     <div id="calendar"></div>
 </div>
@@ -79,20 +71,19 @@ async function initApp() {
             return obj;
         });
 
-        const today = new Date();
-        today.setHours(0,0,0,0);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayDate = new Date();
+        todayDate.setHours(0,0,0,0);
 
-        let run = 0, wait = 0, delay = 0, qty = 0;
         let machineSet = new Set();
         let events = [];
+        let run=0, wait=0, delay=0, qty=0;
 
         data.forEach(item => {
             if (!item.Machine) return;
-            if (item.Status === 'RUN') run++;
-            if (item.Status === 'WAIT') wait++;
-            if (item.Status === 'DELAY') delay++;
-            qty += Number(item.Qty || 0);
             machineSet.add(item.Machine);
+            if(item.Status==='RUN') run++; else if(item.Status==='WAIT') wait++; else if(item.Status==='DELAY') delay++;
+            qty += Number(item.Qty || 0);
 
             events.push({
                 resourceId: item.Machine,
@@ -119,45 +110,47 @@ async function initApp() {
             resourceAreaWidth: '100px',
             resourceAreaHeaderContent: 'MACHINE',
             slotMinWidth: 28,
+            nowIndicator: true, // HIỆN ĐƯỜNG KẺ ĐỎ
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
 
-            // LOGIC TÔ MÀU CỘT NGÀY
+            // TÔ MÀU CỘT
             slotDidMount: function(arg) {
-                if (arg.isLeaf) {
-                    const day = arg.date.getDay(); // 0: CN, 6: T7
-                    
-                    // 1. Tô màu Thứ 7 (Xanh nhạt)
-                    if (day === 6) {
-                        arg.el.classList.add('sat-day');
-                    }
-                    // 2. Tô màu Chủ Nhật (Đỏ nhạt)
-                    else if (day === 0) {
-                        arg.el.classList.add('sun-day');
-                    }
-                    
-                    // 3. Tô màu Vàng đè lên nếu là ngày đã qua (Ưu tiên cảnh báo ngày cũ)
-                    if (arg.date < today) {
-                        arg.el.classList.add('past-day');
-                    }
+                const dateStr = arg.date.toISOString().split('T')[0];
+                const day = arg.date.getDay();
+
+                // 1. Kiểm tra Ngày hôm nay
+                if (dateStr === todayStr) {
+                    arg.el.classList.add('today-day');
+                } 
+                // 2. Kiểm tra Thứ 7 / Chủ Nhật
+                else if (day === 6) {
+                    arg.el.classList.add('sat-day');
+                } else if (day === 0) {
+                    arg.el.classList.add('sun-day');
+                }
+
+                // 3. Kiểm tra Ngày cũ (chỉ tô nếu không phải là hôm nay)
+                if (arg.date < todayDate && dateStr !== todayStr) {
+                    arg.el.classList.add('past-day');
                 }
             },
 
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
+            // TÔ MÀU CHỮ TRÊN TIÊU ĐỀ
+            slotLabelDidMount: function(arg) {
+                const day = arg.date.getDay();
+                if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
+                if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
             }
         });
 
         calendar.render();
-    } catch (error) { console.error(error); }
+    } catch (e) { console.error(e); }
 }
 
 setInterval(() => {
-    const now = new Date();
-    document.getElementById('currentTime').innerText = now.toLocaleString('ja-JP');
+    document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP');
 }, 1000);
 
 initApp();
