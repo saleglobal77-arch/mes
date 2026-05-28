@@ -2,26 +2,42 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MES Scheduler PRO</title>
+    <title>MES Scheduler PRO - Full Month View</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
-        body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f6; }
-        .header { background: #16a34a; color: white; padding: 15px; font-size: 20px; font-weight: bold; }
-        .content { padding: 15px; }
-        .kpi-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .kpi-box { background: white; padding: 15px; flex: 1; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
-        .kpi-value { font-size: 24px; font-weight: bold; color: #16a34a; }
-        #calendar { background: white; padding: 10px; border-radius: 8px; height: 70vh; }
-        /* Màu trạng thái */
-        .run { background: #3b82f6 !important; color: white !important; border:none !important; }
-        .wait { background: #f59e0b !important; color: white !important; border:none !important; }
-        .delay { background: #ef4444 !important; color: white !important; border:none !important; }
+        body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; }
+        .header { background: #16a34a; color: white; padding: 10px 20px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; }
+        .content { padding: 10px; height: 90vh; display: flex; flex-direction: column; }
+        
+        /* KPI */
+        .kpi-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .kpi-box { background: white; padding: 10px; flex: 1; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
+        .kpi-value { font-size: 22px; font-weight: bold; color: #16a34a; }
+
+        /* Lịch */
+        #calendar { background: white; padding: 10px; border-radius: 8px; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        /* Màu sự kiện */
+        .run { background: #3b82f6 !important; border: none !important; }
+        .wait { background: #f59e0b !important; border: none !important; }
+        .delay { background: #ef4444 !important; border: none !important; }
+        .done { background: #10b981 !important; border: none !important; }
+        
+        /* Màu vàng nhạt cho ngày quá hạn (Noki) */
+        .noki-overdue { background-color: #fef9c3 !important; } 
+
+        /* Tùy chỉnh chữ trên thanh kế hoạch */
+        .fc-event-title { font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="header">MES Scheduler PRO</div>
+<div class="header">
+    <span>MES Scheduler PRO (CNC Japan)</span>
+    <span id="currentTime"></span>
+</div>
+
 <div class="content">
     <div class="kpi-row">
         <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
@@ -33,7 +49,6 @@
 </div>
 
 <script>
-// LINK CSV ĐÃ ĐƯỢC CẤU HÌNH TỪ ID CỦA BẠN
 const csvUrl = 'https://docs.google.com/spreadsheets/d/1C6cHh07fcus6obT8i7L8BN3CIOVOtazplZv7rxIV0Rg/gviz/tq?tqx=out:csv';
 
 async function initApp() {
@@ -41,7 +56,6 @@ async function initApp() {
         const response = await fetch(csvUrl);
         const text = await response.text();
         const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '').trim()));
-        
         const headers = rows[0];
         const data = rows.slice(1).map(row => {
             let obj = {};
@@ -49,67 +63,91 @@ async function initApp() {
             return obj;
         });
 
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
         let run = 0, wait = 0, delay = 0, qty = 0;
-        let resources = [];
-        let events = [];
         let machineSet = new Set();
+        let events = [];
 
         data.forEach(item => {
             if (!item.Machine) return;
-            
-            // Đếm KPI
             if (item.Status === 'RUN') run++;
             if (item.Status === 'WAIT') wait++;
             if (item.Status === 'DELAY') delay++;
             qty += Number(item.Qty || 0);
-
-            // Gom nhóm máy
             machineSet.add(item.Machine);
 
-            // Tạo sự kiện lịch
+            // Kiểm tra trễ hạn (Noki)
+            let endD = new Date(item.End);
+            let isOverdue = (endD < today && item.Status !== 'DONE');
+
             events.push({
                 resourceId: item.Machine,
-                title: item.Job,
+                title: item.Job + (item.Memo ? " [" + item.Memo + "]" : ""),
                 start: item.Start,
                 end: item.End,
-                className: item.Status ? item.Status.toLowerCase() : 'run'
+                className: isOverdue ? 'delay' : item.Status.toLowerCase(),
+                description: item.Memo || ''
             });
         });
 
-        // Đổ dữ liệu KPI
         document.getElementById('runCount').innerText = run;
         document.getElementById('waitCount').innerText = wait;
         document.getElementById('delayCount').innerText = delay;
         document.getElementById('outputQty').innerText = qty;
 
-        // Cấu hình máy (Resources)
-        resources = Array.from(machineSet).map(m => ({ id: m, title: m }));
-
-        // Khởi tạo lịch
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
-            locale: 'ja', // Tiếng Nhật
-            resourceAreaWidth: '200px',
+            locale: 'ja',
+            height: '100%',
+            resourceAreaWidth: '150px',
             resourceAreaHeaderContent: 'MACHINE',
-            resources: resources,
+            
+            // --- TỈ LỆ ĐỂ XEM TRỌN 1 THÁNG ---
+            slotMinWidth: 25, // Thu nhỏ độ rộng mỗi ngày để vừa màn hình
+            stickyHeaderDates: true,
+            
+            resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
+
+            // --- TÔ MÀU VÀNG NHẠT CHO NGÀY QUÁ KHỨ ---
+            dayCellDidMount: function(arg) {
+                if (arg.date < today) {
+                    arg.el.classList.add('noki-overdue');
+                }
+            },
+
+            // --- CLICK ĐỂ XEM/GHI MEMO ---
+            eventClick: function(info) {
+                alert("Mã hàng: " + info.event.title + "\n" +
+                      "Thời gian: " + info.event.start.toLocaleDateString() + " - " + info.event.end.toLocaleDateString() + "\n" +
+                      "Ghi chú: " + (info.event.extendedProps.description || "Không có"));
+            },
+
+            // Click vào ô trống để nhắc nhập liệu
+            dateClick: function(info) {
+                alert("Bạn đã chọn ngày: " + info.dateStr + "\nHãy nhập kế hoạch cho ngày này trên Google Sheet.");
+            },
+
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
             }
         });
-        calendar.render();
 
+        calendar.render();
     } catch (error) {
-        console.error("Lỗi tải dữ liệu:", error);
-        alert("Không thể tải dữ liệu từ Google Sheets. Hãy kiểm tra lại chế độ chia sẻ!");
+        console.error(error);
     }
 }
 
 initApp();
+// Tự động cập nhật mỗi 5 phút
+setInterval(initApp, 300000);
 </script>
 </body>
 </html>
