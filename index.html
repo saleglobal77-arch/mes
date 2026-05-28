@@ -277,7 +277,7 @@ MES Scheduler PRO
 //
 
 const csvUrl =
-'https://docs.google.com/spreadsheets/d/2094415544/export?format=csv';
+'https://docs.google.com/spreadsheets/d/1C6cHh07fcus6obT8i7L8BN3CIOVOtazplZv7rxIV0Rg/export?format=csv';
 
 async function loadCSV(){
 
@@ -372,7 +372,8 @@ document.addEventListener('DOMContentLoaded', async function(){
         if(r.Status == 'DELAY') colorClass = 'delay';
         if(r.Status == 'DONE') colorClass = 'done';
 
-        let endDate = new Date(r.End);
+        let endDate =
+        new Date(r.End.replaceAll('/','-'));
 
         endDate.setDate(endDate.getDate() + 1);
 
@@ -387,7 +388,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
             title:r.Job,
 
-            start:r.Start,
+            start:r.Start.replaceAll('/','-'),
 
             end:endString,
 
