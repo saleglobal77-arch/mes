@@ -2,48 +2,63 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MES Scheduler PRO - Full Month View</title>
+    <title>MES Scheduler PRO - CNC Japan</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
-        body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; }
-        .header { background: #16a34a; color: white; padding: 10px 20px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; }
-        .content { padding: 10px; height: 90vh; display: flex; flex-direction: column; }
+        /* --- TỔNG THỂ --- */
+        body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; background: #f3f4f6; font-size: 11px; }
+        .header { background: #16a34a; color: white; padding: 6px 15px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; }
+        .content { padding: 8px; height: 92vh; display: flex; flex-direction: column; }
         
-        /* KPI */
-        .kpi-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .kpi-box { background: white; padding: 10px; flex: 1; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
-        .kpi-value { font-size: 22px; font-weight: bold; color: #16a34a; }
+        /* --- KPI (Thu nhỏ lại) --- */
+        .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .kpi-box { background: white; padding: 6px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .kpi-title { font-size: 10px; color: #6b7280; font-weight: bold; }
+        .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; line-height: 1.2; }
 
-        /* Lịch */
-        #calendar { background: white; padding: 10px; border-radius: 8px; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* --- LỊCH (Chỉnh font chữ cực nhỏ cho tiêu đề) --- */
+        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
 
-        /* Màu sự kiện */
+        /* Font chữ tiêu đề cột Ngày/Thứ */
+        .fc-timeline-slot-label { font-size: 10px !important; padding: 2px 0 !important; }
+        .fc-timeline-slot-cushion { padding: 0 !important; }
+        
+        /* Font chữ tên Máy (Machine) */
+        .fc-datagrid-cell-main { font-size: 11px; font-weight: bold; }
+
+        /* Font chữ Mã hàng trên thanh màu */
+        .fc-event-title { font-size: 10px !important; font-weight: normal !important; padding-left: 3px; }
+        .fc-event { height: 22px !important; }
+
+        /* Màu trạng thái */
         .run { background: #3b82f6 !important; border: none !important; }
         .wait { background: #f59e0b !important; border: none !important; }
         .delay { background: #ef4444 !important; border: none !important; }
         .done { background: #10b981 !important; border: none !important; }
         
-        /* Màu vàng nhạt cho ngày quá hạn (Noki) */
-        .noki-overdue { background-color: #fef9c3 !important; } 
+        /* Màu vàng nhạt cho ngày đã qua */
+        .noki-overdue { background-color: #fffbeb !important; } 
 
-        /* Tùy chỉnh chữ trên thanh kế hoạch */
-        .fc-event-title { font-size: 11px; font-weight: bold; }
+        /* Thu nhỏ các nút điều khiển */
+        .fc-button { padding: 2px 6px !important; font-size: 11px !important; }
+        .fc-toolbar-title { font-size: 16px !important; }
+
     </style>
 </head>
 <body>
 
 <div class="header">
     <span>MES Scheduler PRO (CNC Japan)</span>
-    <span id="currentTime"></span>
+    <span id="currentTime" style="font-size: 12px;"></span>
 </div>
 
 <div class="content">
     <div class="kpi-row">
-        <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
-        <div class="kpi-box"><div>WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
-        <div class="kpi-box"><div>DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
-        <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
+        <div class="kpi-box"><div class="kpi-title">RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
+        <div class="kpi-box"><div class="kpi-title">WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
+        <div class="kpi-box"><div class="kpi-title">DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
+        <div class="kpi-box"><div class="kpi-title">OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
     <div id="calendar"></div>
 </div>
@@ -78,16 +93,12 @@ async function initApp() {
             qty += Number(item.Qty || 0);
             machineSet.add(item.Machine);
 
-            // Kiểm tra trễ hạn (Noki)
-            let endD = new Date(item.End);
-            let isOverdue = (endD < today && item.Status !== 'DONE');
-
             events.push({
                 resourceId: item.Machine,
-                title: item.Job + (item.Memo ? " [" + item.Memo + "]" : ""),
+                title: item.Job,
                 start: item.Start,
                 end: item.End,
-                className: isOverdue ? 'delay' : item.Status.toLowerCase(),
+                className: item.Status.toLowerCase(),
                 description: item.Memo || ''
             });
         });
@@ -103,33 +114,28 @@ async function initApp() {
             initialView: 'resourceTimelineMonth',
             locale: 'ja',
             height: '100%',
-            resourceAreaWidth: '150px',
+            resourceAreaWidth: '120px',
             resourceAreaHeaderContent: 'MACHINE',
             
-            // --- TỈ LỆ ĐỂ XEM TRỌN 1 THÁNG ---
-            slotMinWidth: 25, // Thu nhỏ độ rộng mỗi ngày để vừa màn hình
+            // --- CHỈNH TỈ LỆ ĐỂ HIỆN TRỌN THÁNG ---
+            slotMinWidth: 28, 
             stickyHeaderDates: true,
+
+            // --- CHIA DÒNG NGÀY VÀ THỨ ---
+            slotLabelFormat: [
+                { day: 'numeric' },   // Dòng 1: Ngày (1, 2, 3...)
+                { weekday: 'short' }  // Dòng 2: Thứ (月, 火, 水...)
+            ],
             
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
 
-            // --- TÔ MÀU VÀNG NHẠT CHO NGÀY QUÁ KHỨ ---
             dayCellDidMount: function(arg) {
-                if (arg.date < today) {
-                    arg.el.classList.add('noki-overdue');
-                }
+                if (arg.date < today) { arg.el.classList.add('noki-overdue'); }
             },
 
-            // --- CLICK ĐỂ XEM/GHI MEMO ---
             eventClick: function(info) {
-                alert("Mã hàng: " + info.event.title + "\n" +
-                      "Thời gian: " + info.event.start.toLocaleDateString() + " - " + info.event.end.toLocaleDateString() + "\n" +
-                      "Ghi chú: " + (info.event.extendedProps.description || "Không có"));
-            },
-
-            // Click vào ô trống để nhắc nhập liệu
-            dateClick: function(info) {
-                alert("Bạn đã chọn ngày: " + info.dateStr + "\nHãy nhập kế hoạch cho ngày này trên Google Sheet.");
+                alert("【" + info.event.resourceId + "】 " + info.event.title + "\nMemo: " + (info.event.extendedProps.description || "-"));
             },
 
             headerToolbar: {
@@ -140,14 +146,16 @@ async function initApp() {
         });
 
         calendar.render();
-    } catch (error) {
-        console.error(error);
-    }
+    } catch (error) { console.error(error); }
 }
 
+// Cập nhật đồng hồ Nhật Bản
+setInterval(() => {
+    const now = new Date();
+    document.getElementById('currentTime').innerText = now.toLocaleString('ja-JP');
+}, 1000);
+
 initApp();
-// Tự động cập nhật mỗi 5 phút
-setInterval(initApp, 300000);
 </script>
 </body>
 </html>
