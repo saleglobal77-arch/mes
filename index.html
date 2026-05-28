@@ -6,51 +6,52 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
-        /* --- TỔNG THỂ --- */
-        body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; background: #f3f4f6; font-size: 11px; }
-        .header { background: #16a34a; color: white; padding: 6px 15px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; }
-        .content { padding: 8px; height: 92vh; display: flex; flex-direction: column; }
+        body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
+        .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; }
         
-        /* --- KPI (Thu nhỏ lại) --- */
+        /* KPI */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .kpi-box { background: white; padding: 6px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-title { font-size: 10px; color: #6b7280; font-weight: bold; }
-        .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; line-height: 1.2; }
+        .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
 
-        /* --- LỊCH (Chỉnh font chữ cực nhỏ cho tiêu đề) --- */
-        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        /* Lịch */
+        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .fc-timeline-slot-label { font-size: 10px !important; }
+        .fc-event-title { font-size: 10px !important; }
 
-        /* Font chữ tiêu đề cột Ngày/Thứ */
-        .fc-timeline-slot-label { font-size: 10px !important; padding: 2px 0 !important; }
-        .fc-timeline-slot-cushion { padding: 0 !important; }
-        
-        /* Font chữ tên Máy (Machine) */
-        .fc-datagrid-cell-main { font-size: 11px; font-weight: bold; }
+        .btn-refresh { 
+            background: #ffffff; color: #16a34a; border: none; padding: 4px 10px; 
+            border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;
+            margin-left: 10px;
+        }
+        .btn-refresh:hover { background: #f0f0f0; }
 
-        /* Font chữ Mã hàng trên thanh màu */
-        .fc-event-title { font-size: 10px !important; font-weight: normal !important; padding-left: 3px; }
-        .fc-event { height: 22px !important; }
-
-        /* Màu trạng thái */
+        /* MÀU TRẠNG THÁI CÔNG VIỆC */
         .run { background: #3b82f6 !important; border: none !important; }
         .wait { background: #f59e0b !important; border: none !important; }
         .delay { background: #ef4444 !important; border: none !important; }
-        .done { background: #10b981 !important; border: none !important; }
-        
-        /* Màu vàng nhạt cho ngày đã qua */
-        .noki-overdue { background-color: #fffbeb !important; } 
 
-        /* Thu nhỏ các nút điều khiển */
-        .fc-button { padding: 2px 6px !important; font-size: 11px !important; }
-        .fc-toolbar-title { font-size: 16px !important; }
+        /* MÀU NỀN CHO CÁC CỘT NGÀY ĐẶC BIỆT */
+        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh dương cực nhạt */
+        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Đỏ/Hồng cực nhạt */
+        .past-day { background-color: #fff9c4 !important; } /* Ngày cũ: Vàng nhạt */
+        
+        /* Chỉnh màu chữ cho Thứ 7 và Chủ Nhật trên tiêu đề */
+        .fc-timeline-slot-label[data-date*="sat"], .fc-timeline-slot-label:contains('土') { color: #0050b3; }
+        .fc-timeline-slot-label[data-date*="sun"], .fc-timeline-slot-label:contains('日') { color: #cf1322; }
 
     </style>
 </head>
 <body>
 
 <div class="header">
-    <span>MES Scheduler PRO (CNC Japan)</span>
-    <span id="currentTime" style="font-size: 12px;"></span>
+    <div>
+        <span>MES Scheduler PRO (CNC Japan)</span>
+        <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
+    </div>
+    <span id="currentTime" style="font-family: monospace;"></span>
 </div>
 
 <div class="content">
@@ -68,7 +69,7 @@ const csvUrl = 'https://docs.google.com/spreadsheets/d/1C6cHh07fcus6obT8i7L8BN3C
 
 async function initApp() {
     try {
-        const response = await fetch(csvUrl);
+        const response = await fetch(csvUrl + '&t=' + new Date().getTime());
         const text = await response.text();
         const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '').trim()));
         const headers = rows[0];
@@ -98,8 +99,7 @@ async function initApp() {
                 title: item.Job,
                 start: item.Start,
                 end: item.End,
-                className: item.Status.toLowerCase(),
-                description: item.Memo || ''
+                className: item.Status.toLowerCase()
             });
         });
 
@@ -109,33 +109,39 @@ async function initApp() {
         document.getElementById('outputQty').innerText = qty;
 
         const calendarEl = document.getElementById('calendar');
+        calendarEl.innerHTML = '';
+        
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
             locale: 'ja',
             height: '100%',
-            resourceAreaWidth: '120px',
+            resourceAreaWidth: '100px',
             resourceAreaHeaderContent: 'MACHINE',
-            
-            // --- CHỈNH TỈ LỆ ĐỂ HIỆN TRỌN THÁNG ---
-            slotMinWidth: 28, 
-            stickyHeaderDates: true,
-
-            // --- CHIA DÒNG NGÀY VÀ THỨ ---
-            slotLabelFormat: [
-                { day: 'numeric' },   // Dòng 1: Ngày (1, 2, 3...)
-                { weekday: 'short' }  // Dòng 2: Thứ (月, 火, 水...)
-            ],
-            
+            slotMinWidth: 28,
+            slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
 
-            dayCellDidMount: function(arg) {
-                if (arg.date < today) { arg.el.classList.add('noki-overdue'); }
-            },
-
-            eventClick: function(info) {
-                alert("【" + info.event.resourceId + "】 " + info.event.title + "\nMemo: " + (info.event.extendedProps.description || "-"));
+            // LOGIC TÔ MÀU CỘT NGÀY
+            slotDidMount: function(arg) {
+                if (arg.isLeaf) {
+                    const day = arg.date.getDay(); // 0: CN, 6: T7
+                    
+                    // 1. Tô màu Thứ 7 (Xanh nhạt)
+                    if (day === 6) {
+                        arg.el.classList.add('sat-day');
+                    }
+                    // 2. Tô màu Chủ Nhật (Đỏ nhạt)
+                    else if (day === 0) {
+                        arg.el.classList.add('sun-day');
+                    }
+                    
+                    // 3. Tô màu Vàng đè lên nếu là ngày đã qua (Ưu tiên cảnh báo ngày cũ)
+                    if (arg.date < today) {
+                        arg.el.classList.add('past-day');
+                    }
+                }
             },
 
             headerToolbar: {
@@ -149,7 +155,6 @@ async function initApp() {
     } catch (error) { console.error(error); }
 }
 
-// Cập nhật đồng hồ Nhật Bản
 setInterval(() => {
     const now = new Date();
     document.getElementById('currentTime').innerText = now.toLocaleString('ja-JP');
