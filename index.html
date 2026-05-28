@@ -14,13 +14,12 @@
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* Màu trạng thái công việc */
-        .completed { background: #10b981 !important; border: none !important; }
-        .running { background: #3b82f6 !important; border: none !important; }
-        .waiting { background: #f59e0b !important; border: none !important; }
-        .delay { background: #ef4444 !important; border: none !important; }
+        /* Màu trạng thái */
+        .run { background-color: #3b82f6 !important; border: none !important; }
+        .wait { background-color: #f59e0b !important; border: none !important; }
+        .delay { background-color: #ef4444 !important; border: none !important; }
 
-        /* Màu nền cột ngày */
+        /* Cuối tuần & Ngày cũ */
         .sat-day { background-color: #e6f7ff !important; }
         .sun-day { background-color: #fff1f0 !important; }
         .past-day { background-color: #fff9c4 !important; }
@@ -51,16 +50,17 @@
 </div>
 
 <script>
-// LINK CSV CỦA TAB KH_NhanHang
-const csvUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/export?format=csv&gid=742377566';
+// LINK CSV ĐÃ ĐƯỢC CẬP NHẬT GID MỚI (2118073741)
+const csvUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 
 async function initApp() {
     try {
         const response = await fetch(csvUrl + '&t=' + new Date().getTime());
         const text = await response.text();
+        
+        // Phân tách CSV chuẩn
         const rows = text.split('\n').map(row => {
-            // Xử lý tách dấu phẩy chuẩn hơn
-            return row.split(/,(?=(?:(?:[^"]*"){2})*[^自]*$)/).map(cell => cell.replace(/"/g, '').trim());
+            return row.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim());
         });
         
         const headers = rows[0];
@@ -78,14 +78,12 @@ async function initApp() {
         let run=0, wait=0, delay=0, qty=0;
 
         data.forEach(item => {
-            // Lấy dữ liệu theo tên cột (không quan trọng thứ tự A, B hay C)
             const machine = item["Ten_May"];
             const job = item["Ma_Hang"];
             const step = item["Ten_Cong_Doan"];
             const start = item["Ngay_Bat_Dau"];
-            let end = item["Ngay_Ket_Thuc"];
+            const end = item["Ngay_Ket_Thuc"];
             const status = (item["Status"] || "").toUpperCase();
-            const memo = item["Memo"] || "";
 
             if (!machine || !job || !start) return;
 
@@ -95,7 +93,7 @@ async function initApp() {
             else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
 
-            // FullCalendar cần ngày kết thúc + 1 để hiển thị trọn vẹn
+            // FullCalendar xử lý ngày kết thúc (End + 1)
             let endD = new Date(end || start);
             endD.setDate(endD.getDate() + 1);
 
@@ -105,7 +103,7 @@ async function initApp() {
                 start: start,
                 end: endD.toISOString().split('T')[0],
                 className: status.toLowerCase(),
-                extendedProps: { memo: memo }
+                extendedProps: { memo: item["Memo"] || "" }
             });
         });
 
@@ -137,11 +135,13 @@ async function initApp() {
                 if (arg.date < todayDate && dateStr !== todayStr) arg.el.classList.add('past-day');
             },
             eventClick: function(info) {
-                alert("Máy: " + info.event.resourceId + "\nMã hàng: " + info.event.title + "\nGhi chú: " + info.event.extendedProps.memo);
+                alert("Máy: " + info.event.resourceId + "\nCông việc: " + info.event.title + "\nGhi chú: " + info.event.extendedProps.memo);
             }
         });
         calendar.render();
-    } catch (e) { console.error("Lỗi:", e); }
+    } catch (e) {
+        console.error("Lỗi tải dữ liệu:", e);
+    }
 }
 
 setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
