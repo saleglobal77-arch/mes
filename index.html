@@ -1,201 +1,43 @@
-# index.html
-
-```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MES Scheduler PRO</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MES Scheduler PRO - CNC Japan</title>
 
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
+    <!-- FullCalendar 6.1.11 -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
 
-<style>
-
-body{
-    margin:0;
-    padding:0;
-    background:#f3f4f6;
-    font-family:Arial, sans-serif;
-}
-
-/* TOP HEADER */
-.header{
-    background:#16a34a;
-    color:white;
-    height:52px;
-    display:flex;
-    align-items:center;
-    padding:0 20px;
-    font-size:20px;
-    font-weight:bold;
-}
-
-/* MAIN LAYOUT */
-.main{
-    display:flex;
-    height:calc(100vh - 52px);
-}
-
-/* LEFT MENU */
-.sidebar{
-    width:70px;
-    background:#1f2937;
-    color:white;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    padding-top:20px;
-    gap:20px;
-}
-
-.sidebar div{
-    font-size:12px;
-    text-align:center;
-}
-
-/* CONTENT */
-.content{
-    flex:1;
-    padding:12px;
-    overflow:hidden;
-}
-
-/* FILTER */
-.filter-box{
-    background:white;
-    border-radius:10px;
-    padding:12px;
-    margin-bottom:10px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
-.filter-row{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.filter-row input,
-.filter-row select{
-    height:36px;
-    border:1px solid #d1d5db;
-    border-radius:6px;
-    padding:0 10px;
-}
-
-.green-btn{
-    background:#16a34a;
-    color:white;
-    border:none;
-    padding:10px 20px;
-    border-radius:6px;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-.green-btn:hover{
-    background:#15803d;
-}
-
-/* KPI */
-.kpi-row{
-    display:flex;
-    gap:12px;
-    margin-bottom:10px;
-}
-
-.kpi-box{
-    background:white;
-    border-radius:10px;
-    padding:14px;
-    min-width:180px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
-.kpi-title{
-    color:#6b7280;
-    font-size:12px;
-}
-
-.kpi-value{
-    font-size:32px;
-    font-weight:bold;
-    margin-top:6px;
-}
-
-/* CALENDAR */
-#calendar{
-    background:white;
-    border-radius:10px;
-    padding:10px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
-    height:74vh;
-}
-
-.fc-theme-standard td,
-.fc-theme-standard th{
-    border:1px solid #e5e7eb;
-}
-
-.fc-col-header-cell{
-    background:#f3f4f6;
-}
-
-.fc-resourcecell{
-    background:#f9fafb;
-    font-weight:bold;
-}
-
-.fc-toolbar-title{
-    font-size:24px !important;
-    font-weight:bold;
-}
-
-.fc-button{
-    background:#16a34a !important;
-    border:none !important;
-}
-
-.fc-event{
-    border:none !important;
-    border-radius:999px !important;
-    padding:6px !important;
-    font-weight:bold;
-}
-
-.run{
-    background:#93c5fd !important;
-    color:#111827 !important;
-}
-
-.wait{
-    background:#fde68a !important;
-    color:#111827 !important;
-}
-
-.delay{
-    background:#fca5a5 !important;
-    color:#111827 !important;
-}
-
-.done{
-    background:#bbf7d0 !important;
-    color:#111827 !important;
-}
-
-</style>
+    <style>
+        body { margin: 0; padding: 0; background: #f3f4f6; font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; }
+        .header { background: #16a34a; color: white; height: 52px; display: flex; align-items: center; padding: 0 20px; font-size: 20px; font-weight: bold; }
+        .main { display: flex; height: calc(100vh - 52px); }
+        .sidebar { width: 70px; background: #1f2937; color: white; display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px; }
+        .sidebar div { font-size: 10px; text-align: center; cursor: pointer; }
+        .content { flex: 1; padding: 12px; overflow: hidden; display: flex; flex-direction: column; }
+        .filter-box { background: white; border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .filter-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .filter-row input, .filter-row select { height: 36px; border: 1px solid #d1d5db; border-radius: 6px; padding: 0 10px; }
+        .green-btn { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .kpi-row { display: flex; gap: 12px; margin-bottom: 10px; }
+        .kpi-box { background: white; border-radius: 10px; padding: 14px; flex: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center; }
+        .kpi-title { color: #6b7280; font-size: 12px; font-weight: bold; }
+        .kpi-value { font-size: 28px; font-weight: bold; margin-top: 5px; color: #111827; }
+        #calendar { background: white; border-radius: 10px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); flex: 1; }
+        
+        /* Màu cho các trạng thái */
+        .run { background-color: #3b82f6 !important; border: none !important; color: white !important; } /* Blue */
+        .wait { background-color: #f59e0b !important; border: none !important; color: white !important; } /* Orange/Yellow */
+        .delay { background-color: #ef4444 !important; border: none !important; color: white !important; } /* Red */
+        .done { background-color: #10b981 !important; border: none !important; color: white !important; } /* Green */
+    </style>
 </head>
 <body>
 
-<div class="header">
-MES Scheduler PRO
-</div>
+<div class="header">MES Scheduler PRO</div>
 
 <div class="main">
-
     <div class="sidebar">
         <div>🏠<br>HOME</div>
         <div>📅<br>SCHEDULE</div>
@@ -204,136 +46,88 @@ MES Scheduler PRO
     </div>
 
     <div class="content">
-
-        <!-- FILTER -->
         <div class="filter-box">
-
             <div class="filter-row">
-
-                <input type="date" id="fromDate">
-                <input type="date" id="toDate">
-
-                <select>
-                    <option>KANSAI</option>
-                    <option>TOKYO</option>
-                </select>
-
-                <select>
-                    <option>LINE 1</option>
-                    <option>LINE 2</option>
-                </select>
-
-                <button class="green-btn">AUTO SCHEDULE</button>
+                <input type="date" id="targetDate">
+                <select><option>KANSAI</option><option>TOKYO</option></select>
+                <select><option>LINE 1</option><option>LINE 2</option></select>
+                <button class="green-btn" onclick="location.reload()">REFRESH</button>
                 <button class="green-btn">SAVE</button>
-
             </div>
-
         </div>
 
-        <!-- KPI -->
         <div class="kpi-row">
-
-            <div class="kpi-box">
-                <div class="kpi-title">RUNNING</div>
-                <div class="kpi-value" id="runCount">0</div>
-            </div>
-
-            <div class="kpi-box">
-                <div class="kpi-title">WAITING</div>
-                <div class="kpi-value" id="waitCount">0</div>
-            </div>
-
-            <div class="kpi-box">
-                <div class="kpi-title">DELAY</div>
-                <div class="kpi-value" id="delayCount">0</div>
-            </div>
-
-            <div class="kpi-box">
-                <div class="kpi-title">OUTPUT</div>
-                <div class="kpi-value" id="outputQty">0</div>
-            </div>
-
+            <div class="kpi-box"><div class="kpi-title">RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
+            <div class="kpi-box"><div class="kpi-title">WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
+            <div class="kpi-box"><div class="kpi-title">DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
+            <div class="kpi-box"><div class="kpi-title">OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
         </div>
 
-        <!-- CALENDAR -->
         <div id="calendar"></div>
-
     </div>
-
 </div>
 
 <script>
+// DÁN LINK CSV CỦA BẠN VÀO ĐÂY (Link từ bước Publish to Web)
+const csvUrl = 'https://docs.google.com/spreadsheets/d/e/1C6cHh07fcus6obT8i7L8BN3CIOVOtazplZv7rxIV0Rg/pub?output=csv';
 
-// =============================
-// GOOGLE SHEET CSV
-// =============================
-// THAY YOUR_SHEET_ID BẰNG ID SHEET
-//
-// FORMAT GOOGLE SHEET:
-//
-// Machine,Job,Start,End,Status,Qty
-// MC01,JOB001,2026-05-27,2026-06-12,RUN,100
-// MC02,JOB002,2026-05-29,2026-06-08,WAIT,50
-//
-
-const csvUrl =
-'https://docs.google.com/spreadsheets/d/1C6cHh07fcus6obT8i7L8BN3CIOVOtazplZv7rxIV0Rg/export?format=csv';
-
-async function loadCSV(){
-
-    const response = await fetch(csvUrl);
-
-    const text = await response.text();
-
-    const rows = text.trim().split('\n');
-
-    const headers = rows[0].split(',');
-
-    let data = [];
-
-    for(let i=1;i<rows.length;i++){
-
-        let row = rows[i].split(',');
-
-        let obj = {};
-
-        headers.forEach((h,index)=>{
-
-            obj[h.trim()] = row[index]?.trim();
-
+async function loadCSV() {
+    try {
+        const response = await fetch(csvUrl);
+        const text = await response.text();
+        const rows = text.split('\n').filter(row => row.trim() !== '');
+        const headers = rows[0].split(',').map(h => h.trim());
+        
+        return rows.slice(1).map(row => {
+            const values = row.split(',');
+            let obj = {};
+            headers.forEach((header, i) => {
+                obj[header] = values[i] ? values[i].trim() : '';
+            });
+            return obj;
         });
-
-        data.push(obj);
-
+    } catch (e) {
+        console.error("Lỗi tải dữ liệu:", e);
+        return [];
     }
-
-    return data;
-
 }
 
-// =============================
-// MAIN
-// =============================
-
-document.addEventListener('DOMContentLoaded', async function(){
-
+document.addEventListener('DOMContentLoaded', async function() {
     const data = await loadCSV();
+    if (data.length === 0) {
+        alert("Dữ liệu trống hoặc Link CSV chưa đúng!");
+    }
 
-    // KPI
+    // Xử lý KPI
+    let run = 0, wait = 0, delay = 0, qty = 0;
+    let machineSet = new Set();
+    let events = [];
 
-    let run = 0;
-    let wait = 0;
-    let delay = 0;
-    let qty = 0;
-
-    data.forEach(r=>{
-
-        if(r.Status == 'RUN') run++;
-        if(r.Status == 'WAIT') wait++;
-        if(r.Status == 'DELAY') delay++;
-
+    data.forEach(r => {
+        if(r.Status === 'RUN') run++;
+        if(r.Status === 'WAIT') wait++;
+        if(r.Status === 'DELAY') delay++;
         qty += Number(r.Qty || 0);
+        if(r.Machine) machineSet.add(r.Machine);
 
+        // Định dạng màu sắc
+        let colorClass = 'run';
+        if(r.Status === 'WAIT') colorClass = 'wait';
+        if(r.Status === 'DELAY') colorClass = 'delay';
+        if(r.Status === 'DONE') colorClass = 'done';
+
+        // Xử lý ngày kết thúc (FullCalendar cần +1 ngày để hiển thị hết thanh)
+        let endD = new Date(r.End);
+        endD.setDate(endD.getDate() + 1);
+
+        events.push({
+            id: r.Job,
+            resourceId: r.Machine,
+            title: r.Job,
+            start: r.Start,
+            end: endD.toISOString().split('T')[0],
+            className: colorClass
+        });
     });
 
     document.getElementById('runCount').innerText = run;
@@ -341,232 +135,31 @@ document.addEventListener('DOMContentLoaded', async function(){
     document.getElementById('delayCount').innerText = delay;
     document.getElementById('outputQty').innerText = qty;
 
-    // MACHINE RESOURCE
+    // Máy CNC (Resources)
+    let resources = Array.from(machineSet).sort().map(mc => ({ id: mc, title: mc }));
 
-    let machineSet = new Set();
-
-    data.forEach(r=>{
-        machineSet.add(r.Machine);
-    });
-
-    let resources = [];
-
-    machineSet.forEach(mc=>{
-
-        resources.push({
-            id:mc,
-            title:mc
-        });
-
-    });
-
-    // EVENTS
-
-    let events = [];
-
-    data.forEach(r=>{
-
-        let colorClass = 'run';
-
-        if(r.Status == 'WAIT') colorClass = 'wait';
-        if(r.Status == 'DELAY') colorClass = 'delay';
-        if(r.Status == 'DONE') colorClass = 'done';
-
-        let endDate =
-        new Date(r.End.replaceAll('/','-'));
-
-        endDate.setDate(endDate.getDate() + 1);
-
-        let endString =
-        endDate.toISOString().split('T')[0];
-
-        events.push({
-
-            id:r.Job,
-
-            resourceId:r.Machine,
-
-            title:r.Job,
-
-            start:r.Start.replaceAll('/','-'),
-
-            end:endString,
-
-            classNames:[colorClass]
-
-        });
-
-    });
-
-    // CALENDAR
-
-    let calendarEl =
-    document.getElementById('calendar');
-
-    let calendar =
-    new FullCalendar.Calendar(calendarEl, {
-
-        schedulerLicenseKey:
-        'CC-Attribution-NonCommercial-NoDerivatives',
-
-        initialView:'resourceTimelineMonth',
-
-        editable:true,
-
-        nowIndicator:true,
-
-        resourceAreaWidth:'260px',
-
-        resourceAreaHeaderContent:'MACHINE',
-
-        resources:resources,
-
-        events:events,
-
-        eventDisplay:'block',
-
-        eventMinHeight:34,
-
-        slotMinWidth:48,
-
-        eventTextColor:'black',
-
-        height:'100%',
-
-        headerToolbar:{
-
-            left:'prev,next today',
-
-            center:'title',
-
-            right:
-            'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
-
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+        initialView: 'resourceTimelineMonth',
+        locale: 'ja', // Ngôn ngữ Nhật Bản
+        height: '100%',
+        resourceAreaWidth: '15%',
+        resourceAreaHeaderContent: 'MACHINE',
+        resources: resources,
+        events: events,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
         },
-
-        views:{
-
-            resourceTimelineMonth:{
-
-                slotLabelFormat:[
-                    { day:'numeric' },
-                    { weekday:'short' }
-                ]
-
-            }
-
-        },
-
-        eventDrop:function(info){
-
-            alert(
-                'MOVE JOB: ' +
-                info.event.title
-            );
-
-        },
-
-        eventResize:function(info){
-
-            alert(
-                'RESIZE JOB: ' +
-                info.event.title
-            );
-
+        eventDidMount: function(info) {
+            // Hiển thị tooltip hoặc xử lý thêm màu
         }
-
     });
 
     calendar.render();
-
-    // AUTO REFRESH
-
-    setInterval(()=>{
-        location.reload();
-    },30000);
-
 });
-
 </script>
-
 </body>
 </html>
-```
-
-# Cách dùng
-
-## 1. Tạo Google Sheet
-
-Tạo cột:
-
-```text
-Machine | Job | Start | End | Status | Qty
-```
-
-Ví dụ:
-
-```text
-MC01 | JOB001 | 2026-05-27 | 2026-06-12 | RUN | 100
-MC02 | JOB002 | 2026-05-29 | 2026-06-08 | WAIT | 50
-MC03 | JOB003 | 2026-06-01 | 2026-06-10 | DELAY | 20
-```
-
----
-
-## 2. Share Google Sheet
-
-Google Sheet → Share → Anyone with the link
-
----
-
-## 3. Lấy SHEET ID
-
-Ví dụ link:
-
-```text
-https://docs.google.com/spreadsheets/d/123456789/edit
-```
-
-Sheet ID là:
-
-```text
-123456789
-```
-
----
-
-## 4. Thay vào index.html
-
-Tìm:
-
-```javascript
-YOUR_SHEET_ID
-```
-
-và thay bằng ID thật.
-
----
-
-## 5. Upload GitHub
-
-Upload file:
-
-```text
-index.html
-```
-
-lên GitHub.
-
----
-
-## 6. Bật GitHub Pages
-
-Settings → Pages → Deploy from branch → main → Save
-
----
-
-## 7. Mở website
-
-```text
-https://username.github.io/mes/
-```
