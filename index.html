@@ -2,32 +2,30 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Production Timeline</title>
+    <title>MES Timeline - JAPAN MC</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; }
+        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* Màu trạng thái công việc */
+        /* Màu trạng thái */
         .completed { background: #10b981 !important; border: none !important; }
         .running { background: #3b82f6 !important; border: none !important; }
         .waiting { background: #f59e0b !important; border: none !important; }
         .delay { background: #ef4444 !important; border: none !important; }
 
-        /* Màu nền cột ngày */
+        /* Cuối tuần & Ngày cũ */
         .sat-day { background-color: #e6f7ff !important; }
         .sun-day { background-color: #fff1f0 !important; }
         .past-day { background-color: #fff9c4 !important; }
         .today-day { background-color: #f6ffed !important; border: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; }
-
-        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -35,7 +33,7 @@
 <div class="header">
     <div>
         <span>JAPAN MC PRODUCTION MANAGEMENT</span>
-        <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
+        <button onclick="initApp()" style="margin-left:10px; cursor:pointer;">🔄 REFRESH</button>
     </div>
     <span id="currentTime"></span>
 </div>
@@ -45,28 +43,24 @@
         <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
         <div class="kpi-box"><div>WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
         <div class="kpi-box"><div>DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
-        <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
+        <div class="kpi-box"><div>OUTPUT (QTY)</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
     <div id="calendar"></div>
 </div>
 
 <script>
-// LINK CSV CỦA TAB KH_NhanHang
-const csvUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=742377566';
+// THAY LINK CSV CỦA TAB KH_NhanHang VÀO ĐÂY
+const csvUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/export?format=csv&gid=742377566';
 
 async function initApp() {
     try {
         const response = await fetch(csvUrl + '&t=' + new Date().getTime());
         const text = await response.text();
-        const rows = text.split('\n').map(row => {
-            // Xử lý tách dấu phẩy chuẩn hơn
-            return row.split(/,(?=(?:(?:[^"]*"){2})*[^自]*$)/).map(cell => cell.replace(/"/g, '').trim());
-        });
-        
+        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '').trim()));
         const headers = rows[0];
         const data = rows.slice(1).map(row => {
             let obj = {};
-            headers.forEach((h, i) => { if(h) obj[h] = row[i]; });
+            headers.forEach((h, i) => obj[h] = row[i]);
             return obj;
         });
 
@@ -78,34 +72,23 @@ async function initApp() {
         let run=0, wait=0, delay=0, qty=0;
 
         data.forEach(item => {
-            // Lấy dữ liệu theo tên cột (không quan trọng thứ tự A, B hay C)
-            const machine = item["Ten_May"];
-            const job = item["Ma_Hang"];
-            const step = item["Ten_Cong_Doan"];
-            const start = item["Ngay_Bat_Dau"];
-            let end = item["Ngay_Ket_Thuc"];
-            const status = (item["Status"] || "").toUpperCase();
-            const memo = item["Memo"] || "";
-
-            if (!machine || !job || !start) return;
-
-            machineSet.add(machine);
-            if(status === 'RUN') run++; 
-            else if(status === 'WAIT') wait++; 
+            if (!item.Ten_May) return;
+            machineSet.add(item.Ten_May);
+            
+            // KPI Logic (Dựa trên cột Status)
+            let status = (item.Status || '').toUpperCase();
+            if(status === 'COMPLETED') run++; 
+            else if(status === 'WAITING') wait++; 
             else if(status === 'DELAY') delay++;
-            qty += Number(item["Qty"] || 0);
-
-            // FullCalendar cần ngày kết thúc + 1 để hiển thị trọn vẹn
-            let endD = new Date(end || start);
-            endD.setDate(endD.getDate() + 1);
+            qty += Number(item.Qty || 0);
 
             events.push({
-                resourceId: machine,
-                title: job + " (" + step + ")",
-                start: start,
-                end: endD.toISOString().split('T')[0],
+                resourceId: item.Ten_May,
+                title: item.Ma_Hang + " (" + item.Ten_Cong_Doan + ")",
+                start: item.Ngay_Bat_Dau,
+                end: item.Ngay_Ket_Thuc,
                 className: status.toLowerCase(),
-                extendedProps: { memo: memo }
+                extendedProps: { memo: item.Memo || "" }
             });
         });
 
@@ -121,9 +104,9 @@ async function initApp() {
             initialView: 'resourceTimelineMonth',
             locale: 'ja',
             height: '100%',
-            resourceAreaWidth: '120px',
+            resourceAreaWidth: '140px',
             resourceAreaHeaderContent: 'MACHINE',
-            slotMinWidth: 30,
+            slotMinWidth: 35,
             nowIndicator: true,
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
@@ -141,7 +124,7 @@ async function initApp() {
             }
         });
         calendar.render();
-    } catch (e) { console.error("Lỗi:", e); }
+    } catch (e) { console.error(e); }
 }
 
 setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
