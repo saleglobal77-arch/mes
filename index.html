@@ -1,152 +1,467 @@
+# index.html
+
+```html
 <!DOCTYPE html>
-<html>
-
+<html lang="ja">
 <head>
-
-<meta charset="utf-8">
-
-<title>MES Timeline</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MES Scheduler PRO</title>
 
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
 
 <style>
 
-html,body{
+body{
     margin:0;
     padding:0;
-    font-family:Arial;
-    background:#0f172a;
+    background:#f3f4f6;
+    font-family:Arial, sans-serif;
+}
+
+/* TOP HEADER */
+.header{
+    background:#16a34a;
     color:white;
-}
-
-#topbar{
+    height:52px;
     display:flex;
-    gap:10px;
-    padding:10px;
-}
-
-.kpi-box{
-    background:#1e293b;
-    border-radius:10px;
-    padding:15px;
-    width:180px;
-}
-
-.kpi-title{
-    font-size:14px;
-}
-
-.kpi-value{
-    font-size:30px;
+    align-items:center;
+    padding:0 20px;
+    font-size:20px;
     font-weight:bold;
 }
 
+/* MAIN LAYOUT */
+.main{
+    display:flex;
+    height:calc(100vh - 52px);
+}
+
+/* LEFT MENU */
+.sidebar{
+    width:70px;
+    background:#1f2937;
+    color:white;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top:20px;
+    gap:20px;
+}
+
+.sidebar div{
+    font-size:12px;
+    text-align:center;
+}
+
+/* CONTENT */
+.content{
+    flex:1;
+    padding:12px;
+    overflow:hidden;
+}
+
+/* FILTER */
+.filter-box{
+    background:white;
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.filter-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.filter-row input,
+.filter-row select{
+    height:36px;
+    border:1px solid #d1d5db;
+    border-radius:6px;
+    padding:0 10px;
+}
+
+.green-btn{
+    background:#16a34a;
+    color:white;
+    border:none;
+    padding:10px 20px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.green-btn:hover{
+    background:#15803d;
+}
+
+/* KPI */
+.kpi-row{
+    display:flex;
+    gap:12px;
+    margin-bottom:10px;
+}
+
+.kpi-box{
+    background:white;
+    border-radius:10px;
+    padding:14px;
+    min-width:180px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.kpi-title{
+    color:#6b7280;
+    font-size:12px;
+}
+
+.kpi-value{
+    font-size:32px;
+    font-weight:bold;
+    margin-top:6px;
+}
+
+/* CALENDAR */
 #calendar{
-    height:85vh;
+    background:white;
+    border-radius:10px;
     padding:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    height:74vh;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th{
+    border:1px solid #e5e7eb;
+}
+
+.fc-col-header-cell{
+    background:#f3f4f6;
+}
+
+.fc-resourcecell{
+    background:#f9fafb;
+    font-weight:bold;
+}
+
+.fc-toolbar-title{
+    font-size:24px !important;
+    font-weight:bold;
+}
+
+.fc-button{
+    background:#16a34a !important;
+    border:none !important;
+}
+
+.fc-event{
+    border:none !important;
+    border-radius:999px !important;
+    padding:6px !important;
+    font-weight:bold;
+}
+
+.run{
+    background:#93c5fd !important;
+    color:#111827 !important;
+}
+
+.wait{
+    background:#fde68a !important;
+    color:#111827 !important;
+}
+
+.delay{
+    background:#fca5a5 !important;
+    color:#111827 !important;
+}
+
+.done{
+    background:#bbf7d0 !important;
+    color:#111827 !important;
 }
 
 </style>
-
 </head>
-
 <body>
 
-<div id="topbar">
+<div class="header">
+MES Scheduler PRO
+</div>
 
-    <div class="kpi-box">
-        <div class="kpi-title">RUNNING</div>
-        <div class="kpi-value" id="runCount">0</div>
+<div class="main">
+
+    <div class="sidebar">
+        <div>🏠<br>HOME</div>
+        <div>📅<br>SCHEDULE</div>
+        <div>⚙️<br>SETTING</div>
+        <div>📊<br>KPI</div>
     </div>
 
-    <div class="kpi-box">
-        <div class="kpi-title">WAITING</div>
-        <div class="kpi-value" id="waitCount">0</div>
-    </div>
+    <div class="content">
 
-    <div class="kpi-box">
-        <div class="kpi-title">DELAY</div>
-        <div class="kpi-value" id="delayCount">0</div>
-    </div>
+        <!-- FILTER -->
+        <div class="filter-box">
 
-    <div class="kpi-box">
-        <div class="kpi-title">OUTPUT</div>
-        <div class="kpi-value" id="outputQty">0</div>
+            <div class="filter-row">
+
+                <input type="date" id="fromDate">
+                <input type="date" id="toDate">
+
+                <select>
+                    <option>KANSAI</option>
+                    <option>TOKYO</option>
+                </select>
+
+                <select>
+                    <option>LINE 1</option>
+                    <option>LINE 2</option>
+                </select>
+
+                <button class="green-btn">AUTO SCHEDULE</button>
+                <button class="green-btn">SAVE</button>
+
+            </div>
+
+        </div>
+
+        <!-- KPI -->
+        <div class="kpi-row">
+
+            <div class="kpi-box">
+                <div class="kpi-title">RUNNING</div>
+                <div class="kpi-value" id="runCount">0</div>
+            </div>
+
+            <div class="kpi-box">
+                <div class="kpi-title">WAITING</div>
+                <div class="kpi-value" id="waitCount">0</div>
+            </div>
+
+            <div class="kpi-box">
+                <div class="kpi-title">DELAY</div>
+                <div class="kpi-value" id="delayCount">0</div>
+            </div>
+
+            <div class="kpi-box">
+                <div class="kpi-title">OUTPUT</div>
+                <div class="kpi-value" id="outputQty">0</div>
+            </div>
+
+        </div>
+
+        <!-- CALENDAR -->
+        <div id="calendar"></div>
+
     </div>
 
 </div>
 
-<div id="calendar"></div>
-
 <script>
 
-document.addEventListener('DOMContentLoaded', function() {
+// =============================
+// GOOGLE SHEET CSV
+// =============================
+// THAY YOUR_SHEET_ID BẰNG ID SHEET
+//
+// FORMAT GOOGLE SHEET:
+//
+// Machine,Job,Start,End,Status,Qty
+// MC01,JOB001,2026-05-27,2026-06-12,RUN,100
+// MC02,JOB002,2026-05-29,2026-06-08,WAIT,50
+//
 
-    var calendarEl = document.getElementById('calendar');
+const csvUrl =
+'https://docs.google.com/spreadsheets/d/1C6cHh07fcus6obT8i7L8BN3CIOVOtazplZv7rxIV0Rg/export?format=csv';
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+async function loadCSV(){
+
+    const response = await fetch(csvUrl);
+
+    const text = await response.text();
+
+    const rows = text.trim().split('\n');
+
+    const headers = rows[0].split(',');
+
+    let data = [];
+
+    for(let i=1;i<rows.length;i++){
+
+        let row = rows[i].split(',');
+
+        let obj = {};
+
+        headers.forEach((h,index)=>{
+
+            obj[h.trim()] = row[index]?.trim();
+
+        });
+
+        data.push(obj);
+
+    }
+
+    return data;
+
+}
+
+// =============================
+// MAIN
+// =============================
+
+document.addEventListener('DOMContentLoaded', async function(){
+
+    const data = await loadCSV();
+
+    // KPI
+
+    let run = 0;
+    let wait = 0;
+    let delay = 0;
+    let qty = 0;
+
+    data.forEach(r=>{
+
+        if(r.Status == 'RUN') run++;
+        if(r.Status == 'WAIT') wait++;
+        if(r.Status == 'DELAY') delay++;
+
+        qty += Number(r.Qty || 0);
+
+    });
+
+    document.getElementById('runCount').innerText = run;
+    document.getElementById('waitCount').innerText = wait;
+    document.getElementById('delayCount').innerText = delay;
+    document.getElementById('outputQty').innerText = qty;
+
+    // MACHINE RESOURCE
+
+    let machineSet = new Set();
+
+    data.forEach(r=>{
+        machineSet.add(r.Machine);
+    });
+
+    let resources = [];
+
+    machineSet.forEach(mc=>{
+
+        resources.push({
+            id:mc,
+            title:mc
+        });
+
+    });
+
+    // EVENTS
+
+    let events = [];
+
+    data.forEach(r=>{
+
+        let colorClass = 'run';
+
+        if(r.Status == 'WAIT') colorClass = 'wait';
+        if(r.Status == 'DELAY') colorClass = 'delay';
+        if(r.Status == 'DONE') colorClass = 'done';
+
+        let endDate =
+        new Date(r.End.replaceAll('/','-'));
+
+        endDate.setDate(endDate.getDate() + 1);
+
+        let endString =
+        endDate.toISOString().split('T')[0];
+
+        events.push({
+
+            id:r.Job,
+
+            resourceId:r.Machine,
+
+            title:r.Job,
+
+            start:r.Start.replaceAll('/','-'),
+
+            end:endString,
+
+            classNames:[colorClass]
+
+        });
+
+    });
+
+    // CALENDAR
+
+    let calendarEl =
+    document.getElementById('calendar');
+
+    let calendar =
+    new FullCalendar.Calendar(calendarEl, {
 
         schedulerLicenseKey:
         'CC-Attribution-NonCommercial-NoDerivatives',
 
         initialView:'resourceTimelineMonth',
 
-        nowIndicator:true,
-
         editable:true,
 
-        resourceAreaWidth:'120px',
+        nowIndicator:true,
+
+        resourceAreaWidth:'260px',
 
         resourceAreaHeaderContent:'MACHINE',
 
-        resources:[
-            { id:'MC01', title:'MC01'},
-            { id:'MC02', title:'MC02'},
-            { id:'MC03', title:'MC03'}
-        ],
+        resources:resources,
 
-        events:[
+        events:events,
 
-            {
-                id:'1',
-                resourceId:'MC01',
-                title:'JOB001',
-                start:'2026-05-27T08:00:00',
-                end:'2026-05-27T12:00:00',
-                backgroundColor:'green'
-            },
+        eventDisplay:'block',
 
-            {
-                id:'2',
-                resourceId:'MC02',
-                title:'JOB002',
-                start:'2026-05-27T09:00:00',
-                end:'2026-05-27T18:00:00',
-                backgroundColor:'orange'
-            },
+        eventMinHeight:34,
 
-            {
-                id:'3',
-                resourceId:'MC03',
-                title:'JOB003',
-                start:'2026-05-27T13:00:00',
-                end:'2026-05-27T20:00:00',
-                backgroundColor:'red'
+        slotMinWidth:48,
+
+        eventTextColor:'black',
+
+        height:'100%',
+
+        headerToolbar:{
+
+            left:'prev,next today',
+
+            center:'title',
+
+            right:
+            'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
+
+        },
+
+        views:{
+
+            resourceTimelineMonth:{
+
+                slotLabelFormat:[
+                    { day:'numeric' },
+                    { weekday:'short' }
+                ]
+
             }
 
-        ],
+        },
 
         eventDrop:function(info){
 
             alert(
-                'JOB: ' +
-                info.event.title +
-                '\nNEW START: ' +
-                info.event.start
+                'MOVE JOB: ' +
+                info.event.title
             );
 
         },
@@ -154,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventResize:function(info){
 
             alert(
-                'Resize: ' +
+                'RESIZE JOB: ' +
                 info.event.title
             );
 
@@ -164,15 +479,94 @@ document.addEventListener('DOMContentLoaded', function() {
 
     calendar.render();
 
-    document.getElementById('runCount').innerText = 1;
-    document.getElementById('waitCount').innerText = 1;
-    document.getElementById('delayCount').innerText = 1;
-    document.getElementById('outputQty').innerText = 350;
+    // AUTO REFRESH
+
+    setInterval(()=>{
+        location.reload();
+    },30000);
 
 });
 
 </script>
 
 </body>
-
 </html>
+```
+
+# Cách dùng
+
+## 1. Tạo Google Sheet
+
+Tạo cột:
+
+```text
+Machine | Job | Start | End | Status | Qty
+```
+
+Ví dụ:
+
+```text
+MC01 | JOB001 | 2026-05-27 | 2026-06-12 | RUN | 100
+MC02 | JOB002 | 2026-05-29 | 2026-06-08 | WAIT | 50
+MC03 | JOB003 | 2026-06-01 | 2026-06-10 | DELAY | 20
+```
+
+---
+
+## 2. Share Google Sheet
+
+Google Sheet → Share → Anyone with the link
+
+---
+
+## 3. Lấy SHEET ID
+
+Ví dụ link:
+
+```text
+https://docs.google.com/spreadsheets/d/123456789/edit
+```
+
+Sheet ID là:
+
+```text
+123456789
+```
+
+---
+
+## 4. Thay vào index.html
+
+Tìm:
+
+```javascript
+YOUR_SHEET_ID
+```
+
+và thay bằng ID thật.
+
+---
+
+## 5. Upload GitHub
+
+Upload file:
+
+```text
+index.html
+```
+
+lên GitHub.
+
+---
+
+## 6. Bật GitHub Pages
+
+Settings → Pages → Deploy from branch → main → Save
+
+---
+
+## 7. Mở website
+
+```text
+https://username.github.io/mes/
+```
