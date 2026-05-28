@@ -8,22 +8,37 @@
     <style>
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; }
+        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
         
         /* KPI */
-        .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
 
         /* LỊCH */
-        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; }
+        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
 
-        /* --- THANH TRƯỢT NGANG (SCROLLBAR) --- */
-        /* Làm cho thanh trượt dưới đáy to và dễ kéo hơn */
-        .fc-scroller::-webkit-scrollbar { height: 12px; }
-        .fc-scroller::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .fc-scroller::-webkit-scrollbar-thumb { background: #16a34a; border-radius: 10px; border: 2px solid #f1f1f1; }
-        .fc-scroller::-webkit-scrollbar-thumb:hover { background: #15803d; }
+        /* --- ÉP THANH TRƯỢT HIỆN LÊN VÀ LÀM ĐẸP --- */
+        /* Thanh trượt nằm trong lớp .fc-scroller của FullCalendar */
+        .fc-scroller { overflow-x: auto !important; }
+        
+        /* Chỉnh thanh trượt cho Chrome, Edge, Safari */
+        .fc-scroller::-webkit-scrollbar {
+            height: 16px !important; /* Độ dày thanh trượt */
+            display: block !important;
+        }
+        .fc-scroller::-webkit-scrollbar-track {
+            background: #e5e7eb !important; /* Màu nền thanh trượt */
+            border-radius: 10px;
+        }
+        .fc-scroller::-webkit-scrollbar-thumb {
+            background: #16a34a !important; /* Màu xanh của cục kéo */
+            border-radius: 10px;
+            border: 3px solid #e5e7eb; /* Khoảng cách quanh cục kéo */
+        }
+        .fc-scroller::-webkit-scrollbar-thumb:hover {
+            background: #15803d !important;
+        }
 
         /* MÀU NỀN CỘT */
         .sat-day { background-color: #e6f7ff !important; }
@@ -101,7 +116,6 @@ async function initApp() {
                 start: item.Start,
                 end: item.End,
                 className: item.Status.toLowerCase(),
-                // Lưu Memo vào dữ liệu ẩn của event
                 extendedProps: {
                     memo: item.Memo || "N/A"
                 }
@@ -123,13 +137,16 @@ async function initApp() {
             height: '100%',
             resourceAreaWidth: '100px',
             resourceAreaHeaderContent: 'MACHINE',
-            slotMinWidth: 40, // Tăng độ rộng cột để hiện thanh cuộn ngang dễ kéo hơn
+            
+            // --- ĐỘ RỘNG CỘT ĐỂ ÉP THANH TRƯỢT HIỆN RA ---
+            // Tăng lên 80px mỗi ngày để lịch dài hơn chiều ngang màn hình
+            slotMinWidth: 80, 
+            
             nowIndicator: true,
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
 
-            // TÔ MÀU CỘT
             slotDidMount: function(arg) {
                 const dateStr = arg.date.toISOString().split('T')[0];
                 const day = arg.date.getDay();
@@ -145,14 +162,12 @@ async function initApp() {
                 }
             },
 
-            // TÔ MÀU CHỮ TIÊU ĐỀ
             slotLabelDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
                 if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
             },
 
-            // --- CHỨC NĂNG KÍCH CHUỘT HIỆN MEMO ---
             eventClick: function(info) {
                 alert(
                     "【機種: " + info.event.resourceId + "】\n" +
