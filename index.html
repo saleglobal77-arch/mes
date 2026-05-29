@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Production Timeline</title>
+    <title>JAPAN MC - Production Timeline PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
@@ -18,26 +18,27 @@
         /* LỊCH */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* --- MÀU NỀN CỘT (NHẠT) --- */
+        /* --- TÔ MÀU NỀN CỘT (QUAN TRỌNG) --- */
         .sat-day { background-color: #f0f7ff !important; } /* Thứ 7: Xanh phớt nhạt */
         .sun-day { background-color: #fff5f5 !important; } /* Chủ Nhật: Đỏ phớt nhạt */
         .past-day { background-color: #fcf9e8 !important; } /* Ngày cũ: Vàng nhạt */
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
 
         /* Đường kẻ đỏ chỉ ngày hiện tại */
-        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 5; }
+        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        /* Màu chữ Thứ 7/CN trên thanh tiêu đề */
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; }
+        /* Màu chữ tiêu đề Thứ 7/CN */
+        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
+        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
 
-        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-
-        /* Đè màu chữ trên thanh kế hoạch để dễ đọc */
-        .fc-event-title { color: white !important; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); font-weight: bold !important; }
-        
         /* Cột Machine bên trái */
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
+
+        /* Chỉnh thanh kế hoạch */
+        .fc-event { border: none !important; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .fc-event-title { color: white !important; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
+
+        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -61,22 +62,16 @@
 </div>
 
 <script>
-// LINK CSV TAB KH_NhanHang
 const csvUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 
-// Hàm tự động tạo màu sắc dựa trên chuỗi ký tự
+// Thuật toán tạo màu mới: Phân biệt rõ hơn cho các chuỗi gần giống nhau
 function stringToColor(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        hash = str.charCodeAt(i) + ((hash << 7) - hash);
     }
-    let color = '#';
-    for (let i = 0; i < 3; i++) {
-        let value = (hash >> (i * 8)) & 0xFF;
-        // Đảm bảo màu đủ đậm để hiện chữ trắng (Saturation)
-        color += ('00' + value.toString(16)).substr(-2);
-    }
-    return color;
+    const hue = Math.abs(hash % 360); // Tạo dải màu cầu vồng (0-360)
+    return `hsl(${hue}, 70%, 45%)`; // Độ đậm 70%, Độ sáng 45% để hiện chữ trắng đẹp
 }
 
 async function initApp() {
@@ -112,22 +107,21 @@ async function initApp() {
             if (!machine || !job || !start) return;
 
             machineSet.add(machine);
-            if(status === 'RUN') run++; 
-            else if(status === 'WAIT') wait++; 
-            else if(status === 'DELAY') delay++;
+            if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
 
             let endD = new Date(end || start);
             endD.setDate(endD.getDate() + 1);
+
+            const jobColor = stringToColor(job);
 
             events.push({
                 resourceId: machine,
                 title: job + " (" + step + ")",
                 start: start,
                 end: endD.toISOString().split('T')[0],
-                // --- TỰ ĐỘNG TẠO MÀU CHO MỖI MÃ HÀNG ---
-                backgroundColor: stringToColor(job),
-                borderColor: stringToColor(job),
+                backgroundColor: jobColor,
+                borderColor: jobColor,
                 extendedProps: { memo: item["Memo"] || "" }
             });
         });
@@ -152,11 +146,12 @@ async function initApp() {
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
 
-            // --- TÔ MÀU CHỮ CHO TÊN MÁY ---
+            // Tô màu chữ tên máy bên trái
             resourceLabelDidMount: function(arg) {
                 arg.el.style.color = stringToColor(arg.resource.id);
             },
 
+            // TÔ MÀU NỀN CỘT CHO THỨ 7, CN, NGÀY CŨ
             slotDidMount: function(arg) {
                 const dateStr = arg.date.toISOString().split('T')[0];
                 const day = arg.date.getDay();
@@ -174,6 +169,7 @@ async function initApp() {
                 }
             },
 
+            // TÔ MÀU TIÊU ĐỀ
             slotLabelDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
@@ -185,9 +181,7 @@ async function initApp() {
             }
         });
         calendar.render();
-    } catch (e) {
-        console.error("Lỗi tải dữ liệu:", e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
