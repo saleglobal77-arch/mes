@@ -8,33 +8,24 @@
     <style>
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* KPI */
+        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; }
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
-
-        /* LỊCH */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* --- MÀU NỀN CỘT --- */
-        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh dương nhạt */
-        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Đỏ nhạt */
-        .past-day { background-color: #fff9c4 !important; } /* Ngày cũ: Vàng nhạt */
-        .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; } /* Hôm nay: Xanh lá nhạt */
-
-        /* Đường kẻ đỏ chỉ ngày hiện tại */
-        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 5; }
-
-        /* Chỉnh màu chữ Thứ 7/CN trên thanh tiêu đề */
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; }
-
-        /* Trạng thái công việc */
-        .run { background: #3b82f6 !important; border: none !important; }
-        .wait { background: #f59e0b !important; border: none !important; }
+        /* Màu trạng thái công việc */
+        .completed { background: #10b981 !important; border: none !important; }
+        .running { background: #3b82f6 !important; border: none !important; }
+        .waiting { background: #f59e0b !important; border: none !important; }
         .delay { background: #ef4444 !important; border: none !important; }
+
+        /* Màu nền cột ngày */
+        .sat-day { background-color: #e6f7ff !important; }
+        .sun-day { background-color: #fff1f0 !important; }
+        .past-day { background-color: #fff9c4 !important; }
+        .today-day { background-color: #f6ffed !important; border: 1px solid #52c41a !important; }
+        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; }
 
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
@@ -60,15 +51,16 @@
 </div>
 
 <script>
-// LINK CSV TAB KH_NhanHang
-const csvUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
+// LINK CSV CỦA TAB KH_NhanHang
+const csvUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/export?format=csv&gid=742377566';
 
 async function initApp() {
     try {
         const response = await fetch(csvUrl + '&t=' + new Date().getTime());
         const text = await response.text();
         const rows = text.split('\n').map(row => {
-            return row.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim());
+            // Xử lý tách dấu phẩy chuẩn hơn
+            return row.split(/,(?=(?:(?:[^"]*"){2})*[^自]*$)/).map(cell => cell.replace(/"/g, '').trim());
         });
         
         const headers = rows[0];
@@ -86,12 +78,14 @@ async function initApp() {
         let run=0, wait=0, delay=0, qty=0;
 
         data.forEach(item => {
+            // Lấy dữ liệu theo tên cột (không quan trọng thứ tự A, B hay C)
             const machine = item["Ten_May"];
             const job = item["Ma_Hang"];
             const step = item["Ten_Cong_Doan"];
             const start = item["Ngay_Bat_Dau"];
-            const end = item["Ngay_Ket_Thuc"];
+            let end = item["Ngay_Ket_Thuc"];
             const status = (item["Status"] || "").toUpperCase();
+            const memo = item["Memo"] || "";
 
             if (!machine || !job || !start) return;
 
@@ -101,7 +95,7 @@ async function initApp() {
             else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
 
-            // Xử lý ngày kết thúc (End + 1 để hiện thị đủ thanh)
+            // FullCalendar cần ngày kết thúc + 1 để hiển thị trọn vẹn
             let endD = new Date(end || start);
             endD.setDate(endD.getDate() + 1);
 
@@ -111,7 +105,7 @@ async function initApp() {
                 start: start,
                 end: endD.toISOString().split('T')[0],
                 className: status.toLowerCase(),
-                extendedProps: { memo: item["Memo"] || "" }
+                extendedProps: { memo: memo }
             });
         });
 
@@ -134,40 +128,20 @@ async function initApp() {
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
-
-            // TÔ MÀU NỀN CÁC CỘT
             slotDidMount: function(arg) {
                 const dateStr = arg.date.toISOString().split('T')[0];
                 const day = arg.date.getDay();
-
-                if (dateStr === todayStr) {
-                    arg.el.classList.add('today-day');
-                } else if (day === 6) {
-                    arg.el.classList.add('sat-day');
-                } else if (day === 0) {
-                    arg.el.classList.add('sun-day');
-                }
-
-                if (arg.date < todayDate && dateStr !== todayStr) {
-                    arg.el.classList.add('past-day');
-                }
+                if (dateStr === todayStr) arg.el.classList.add('today-day');
+                else if (day === 6) arg.el.classList.add('sat-day');
+                else if (day === 0) arg.el.classList.add('sun-day');
+                if (arg.date < todayDate && dateStr !== todayStr) arg.el.classList.add('past-day');
             },
-
-            // TÔ MÀU CHỮ THỨ 7 / CN TRÊN TIÊU ĐỀ
-            slotLabelDidMount: function(arg) {
-                const day = arg.date.getDay();
-                if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
-                if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
-            },
-
             eventClick: function(info) {
-                alert("Máy: " + info.event.resourceId + "\nCông việc: " + info.event.title + "\nGhi chú: " + info.event.extendedProps.memo);
+                alert("Máy: " + info.event.resourceId + "\nMã hàng: " + info.event.title + "\nGhi chú: " + info.event.extendedProps.memo);
             }
         });
         calendar.render();
-    } catch (e) {
-        console.error("Lỗi tải dữ liệu:", e);
-    }
+    } catch (e) { console.error("Lỗi:", e); }
 }
 
 setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
