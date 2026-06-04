@@ -3,71 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <title>JAPAN MC - Plan vs Actual PRO</title>
+    <!-- Tải thư viện lịch FullCalendar -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
+    
     <style>
+        /* --- CÀI ĐẶT PHÔNG CHỮ VÀ NỀN --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
-        .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* --- KHU VỰC THANH TIÊU ĐỀ (HEADER) --- */
+        .header { background: #16a34a; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* --- ĐỒNG HỒ ĐIỆN TỬ (Góc trên bên phải) --- */
+        #currentTime { 
+            font-family: 'Digital-7', 'Courier New', Courier, monospace; 
+            font-size: 18px; font-weight: bold; color: #00ff00; /* Màu chữ xanh neon */
+            background: #000000; padding: 5px 12px; border-radius: 6px; border: 2px solid #ffffff;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); min-width: 180px; text-align: center;
+        }
+
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* --- KHU VỰC CHỈ SỐ KPI (TRÊN CÙNG) --- */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
+
+        /* --- KHUNG CHÍNH CỦA LỊCH --- */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-
-         /* Màu chữ tiêu đề Thứ 7/CN */
-        .sat-day { background-color: #f0f7ff !important; } 
-        .sun-day { background-color: #fff5f5 !important; } 
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
-
-        .past-day { background-color: #fcf9e8 !important; } 
+        
+        /* --- MÀU NỀN CÁC CỘT NGÀY ĐẶC BIỆT --- */
+        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh dương nhạt */
+        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Hồng nhạt */
+        .past-day { background-color: #fcf9e8 !important; } /* Ngày đã qua: Vàng phớt */
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        .fc-event { border: none !important; margin-bottom: 1px !important; }
+        /* --- MÀU CHỮ THỨ 7 / CN TRÊN TIÊU ĐỀ --- */
+        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; }
+        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; }
+
+        /* --- CHỈNH CÁC THANH CÔNG VIỆC (EVENTS) --- */
+        .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* THANH THỰC TẾ (Màu vàng nhạt) */
+        /* --- CHỈNH RIÊNG CHO THANH THỰC TẾ (ACTUAL - MÀU VÀNG) --- */
         .actual-event { 
-            background-color: #fff9c4 !important; 
+            background-color: #fff9c4 !important; /* Màu nền vàng nhạt */
             border: 1px solid #fbc02d !important; 
             height: 18px !important; 
         }
         .actual-event .fc-event-title { 
-            color: #856404 !important; 
-            text-shadow: none !important; 
-            font-size: 9px !important;
+            color: #000000 !important; /* ĐỔI MÀU CHỮ THÀNH ĐEN ĐỂ DỄ NHÌN */
+            text-shadow: none !important; /* Bỏ bóng chữ để nhìn rõ hơn trên nền vàng */
+            font-size: 10px !important;
         }
 
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
-        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <span>DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
+        <span style="font-size: 14px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
         <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
     </div>
-    <span id="currentTime"></span>
+    <div id="currentTime">0000/00/00 00:00:00</div>
 </div>
 
 <div class="content">
+    <!-- Khu vực hiển thị KPI -->
     <div class="kpi-row">
         <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
         <div class="kpi-box"><div>WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
         <div class="kpi-box"><div>DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
         <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
+    <!-- Nơi lịch sẽ hiện ra -->
     <div id="calendar"></div>
 </div>
 
 <script>
-// TÁCH BIỆT 2 FILE RIÊNG BIỆT
+/* --- KHU VỰC CÀI ĐẶT ĐƯỜNG LINK GOOGLE SHEETS (DẠNG CSV) --- */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 
+/* --- HÀM TẠO MÀU TỰ ĐỘNG CHO MÃ HÀNG --- */
 function stringToColor(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) { hash = (hash * 131) + str.charCodeAt(i); hash = hash & hash; }
@@ -75,7 +98,7 @@ function stringToColor(str) {
     return `hsl(${hue}, 80%, 40%)`;
 }
 
-// Hàm đọc ngày tháng cực mạnh để xử lý DD/MM/YYYY HH:mm:ss
+/* --- HÀM ĐỌC ĐỊNH DẠNG NGÀY THÁNG (DD/MM/YYYY) --- */
 function parseAnyDate(dStr) {
     if (!dStr || dStr.trim() === "") return null;
     const parts = dStr.split(' ');
@@ -83,9 +106,10 @@ function parseAnyDate(dStr) {
     if (d.length === 3) {
         return `${d[2]}-${d[1].padStart(2, '0')}-${d[0].padStart(2, '0')}T${parts[1] || "00:00:00"}`;
     }
-    return dStr; // Nếu đã là YYYY-MM-DD
+    return dStr; 
 }
 
+/* --- HÀM TẢI DỮ LIỆU TỪ GOOGLE SHEETS --- */
 async function fetchCSV(url) {
     const response = await fetch(url + '&t=' + new Date().getTime());
     const text = await response.text();
@@ -98,8 +122,10 @@ async function fetchCSV(url) {
     });
 }
 
+/* --- CHƯƠNG TRÌNH CHÍNH KHỞI TẠO LỊCH --- */
 async function initApp() {
     try {
+        // Tải cả 2 file cùng lúc
         const [dataPlan, dataActual] = await Promise.all([
             fetchCSV(urlPlan),
             fetchCSV(urlActual)
@@ -108,7 +134,7 @@ async function initApp() {
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // 1. DỮ LIỆU KẾ HOẠCH
+        // 1. Xử lý bảng KẾ HOẠCH
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = item["Ngay_Bat_Dau"], e = item["Ngay_Ket_Thuc"];
             if (!m || !j || !s) return;
@@ -127,29 +153,31 @@ async function initApp() {
                 end: endD.toISOString().split('T')[0],
                 backgroundColor: stringToColor(j),
                 borderColor: stringToColor(j),
-                sortOrder: 1
+                extendedProps: { memo: item["Memo"] || "N/A" },
+                sortOrder: 1 // Kế hoạch nằm trên
             });
         });
 
-        // 2. DỮ LIỆU THỰC TẾ (Actual - Màu vàng nhạt)
+        // 2. Xử lý bảng THỰC TẾ (Hàng màu vàng)
         dataActual.forEach(item => {
-            const m = item["may_gia_cong"], j = item["ma_ban_ve"], s = item["thoi_diem_bat_dau"], e = item["thoi_diem_hoan_thanh"];
+            const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = item["thoi_diem_bat_dau"], e = item["thoi_diem_hoan_thanh"];
             if (!m || !j || !s) return;
             machineSet.add(m);
 
             const startTime = parseAnyDate(s);
             let endTime = parseAnyDate(e);
             if (!endTime || endTime === "" || item["trang_thai"] === "Processing") {
-                endTime = new Date().toISOString();
+                endTime = new Date().toISOString(); // Đang chạy thì kéo dài đến hiện tại
             }
 
             events.push({
                 resourceId: m,
-                title: "ACTUAL: " + j,
+                title: "ACTUAL: " + j + " (" + (step || "") + ")",
                 start: startTime,
                 end: endTime,
-                className: 'actual-event',
-                sortOrder: 2
+                className: 'actual-event', // Áp dụng màu vàng và chữ đen từ CSS
+                extendedProps: { memo: "NV: " + (item["msnv"] || "") + " | Qty: " + (item["so_luong_GC"] || "") },
+                sortOrder: 2 // Thực tế nằm dưới
             });
         });
 
@@ -158,24 +186,41 @@ async function initApp() {
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
-            locale: 'ja',
+            locale: 'ja', // Ngôn ngữ Nhật Bản
             height: '100%',
             resourceAreaWidth: '130px',
             resourceAreaHeaderContent: 'MACHINE',
             slotMinWidth: 35,
             nowIndicator: true,
-            eventOrder: 'sortOrder',
+            eventOrder: 'sortOrder', // Ưu tiên xếp kế hoạch trước, thực tế sau
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
+            
+            // Tô màu chữ tên máy
             resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
+            
+            // Tô màu nền cột Thứ 7 / CN
             slotDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('sat-day');
                 if (day === 0) arg.el.classList.add('sun-day');
+            },
+
+            // Tô màu chữ tiêu đề Thứ 7 / CN
+            slotLabelDidMount: function(arg) {
+                const day = arg.date.getDay();
+                if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
+                if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
+            },
+
+            // Xử lý khi kích chuột xem Ghi chú
+            eventClick: function(info) {
+                alert("【" + info.event.resourceId + "】\nContent: " + info.event.title + "\nDetail: " + info.event.extendedProps.memo);
             }
         });
         calendar.render();
+        // Cập nhật các ô chỉ số KPI
         document.getElementById('runCount').innerText = run;
         document.getElementById('waitCount').innerText = wait;
         document.getElementById('delayCount').innerText = delay;
@@ -183,8 +228,21 @@ async function initApp() {
     } catch (e) { console.error(e); }
 }
 
-setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
-initApp();
+/* --- HÀM CẬP NHẬT ĐỒNG HỒ TỪNG GIÂY --- */
+function updateClock() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('currentTime').innerText = `${y}/${m}/${d} ${h}:${min}:${s}`;
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+initApp(); // Chạy ứng dụng lần đầu
 </script>
 </body>
 </html>
