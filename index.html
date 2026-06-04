@@ -8,16 +8,21 @@
     <style>
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         
-        /* --- HEADER & CLOCK --- */
-        .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
+        /* --- HEADER & CLOCK (Đã sửa để nhìn rõ hơn) --- */
+        .header { background: #16a34a; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; }
+        
         #currentTime { 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 14px; 
+            font-family: 'Digital-7', 'Courier New', Courier, monospace; 
+            font-size: 18px; 
             font-weight: bold; 
-            color: #ffff00; /* Đổi sang màu vàng cho nổi bật trên nền xanh */
-            background: rgba(0,0,0,0.2);
-            padding: 2px 8px;
-            border-radius: 4px;
+            color: #00ff00; /* Màu xanh Neon rực rỡ */
+            background: #000000; /* Nền đen để làm nổi bật màu xanh */
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            min-width: 180px;
+            text-align: center;
         }
 
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -27,13 +32,12 @@
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
         /* --- MÀU NỀN CỘT THỨ 7 / CN / QUÁ KHỨ --- */
-        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh dương nhạt */
-        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Hồng nhạt */
-        .past-day { background-color: #fcf9e8 !important; } /* Ngày cũ: Vàng phớt */
+        .sat-day { background-color: #e6f7ff !important; } 
+        .sun-day { background-color: #fff1f0 !important; } 
+        .past-day { background-color: #fcf9e8 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        /* Màu chữ Thứ 7/CN trên thanh tiêu đề */
         .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; }
         .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; }
 
@@ -41,7 +45,6 @@
         .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* Thanh THỰC TẾ (Actual - Màu vàng nhạt) */
         .actual-event { 
             background-color: #fff9c4 !important; 
             border: 1px solid #fbc02d !important; 
@@ -54,17 +57,18 @@
         }
 
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
-        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-refresh:hover { background: #f0f0f0; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <span>DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
+        <span style="font-size: 14px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
         <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
     </div>
-    <span id="currentTime"></span>
+    <div id="currentTime">0000/00/00 00:00:00</div>
 </div>
 
 <div class="content">
@@ -78,7 +82,6 @@
 </div>
 
 <script>
-// TÁCH BIỆT 2 FILE RIÊNG BIỆT
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 
@@ -121,7 +124,6 @@ async function initApp() {
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // 1. DỮ LIỆU KẾ HOẠCH
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = item["Ngay_Bat_Dau"], e = item["Ngay_Ket_Thuc"];
             if (!m || !j || !s) return;
@@ -145,7 +147,6 @@ async function initApp() {
             });
         });
 
-        // 2. DỮ LIỆU THỰC TẾ (Actual - Hiện Mã hàng + Công đoạn)
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = item["thoi_diem_bat_dau"], e = item["thoi_diem_hoan_thanh"];
             if (!m || !j || !s) return;
@@ -184,28 +185,18 @@ async function initApp() {
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
             resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
-            
-            // TÔ MÀU NỀN CHO CỘT THỨ 7 / CN
             slotDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('sat-day');
                 if (day === 0) arg.el.classList.add('sun-day');
             },
-
-            // TÔ MÀU TIÊU ĐỀ THỨ 7 / CN
             slotLabelDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
                 if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
             },
-
-            // KÍCH CHUỘT HIỆN GHI CHÚ
             eventClick: function(info) {
-                alert(
-                    "【" + info.event.resourceId + "】\n" +
-                    "Content: " + info.event.title + "\n" +
-                    "Detail: " + info.event.extendedProps.memo
-                );
+                alert("【" + info.event.resourceId + "】\nContent: " + info.event.title + "\nDetail: " + info.event.extendedProps.memo);
             }
         });
         calendar.render();
@@ -216,10 +207,20 @@ async function initApp() {
     } catch (e) { console.error(e); }
 }
 
-setInterval(() => { 
-    document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); 
-}, 1000);
+// CẬP NHẬT ĐỒNG HỒ
+function updateClock() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('currentTime').innerText = `${y}/${m}/${d} ${h}:${min}:${s}`;
+}
 
+setInterval(updateClock, 1000);
+updateClock();
 initApp();
 </script>
 </body>
