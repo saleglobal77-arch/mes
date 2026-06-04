@@ -8,7 +8,7 @@
     <style>
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; }
+        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
@@ -27,9 +27,9 @@
         .fc-event { border: none !important; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* Màu cho hàng đang gia công (Actual) */
-        .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; }
-        .actual-event .fc-event-title { color: #856404 !important; text-shadow: none !important; }
+        /* Màu vàng nhạt cho thanh THỰC TẾ (Actual) */
+        .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; z-index: 2; }
+        .actual-event .fc-event-title { color: #856404 !important; text-shadow: none !important; font-size: 9px !important; }
 
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -67,6 +67,23 @@ function stringToColor(str) {
     return `hsl(${hue}, 80%, 40%)`;
 }
 
+// Hàm xử lý ngày tháng từ định dạng DD/MM/YYYY HH:mm:ss của Excel
+function parseExcelDate(dStr) {
+    if (!dStr || dStr.trim() === "") return null;
+    try {
+        // Tách phần ngày và phần giờ
+        const parts = dStr.split(' ');
+        const dateParts = parts[0].split('/');
+        if (dateParts.length === 3) {
+            // Chuyển thành YYYY-MM-DD
+            let isoDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+            if (parts[1]) isoDate += `T${parts[1]}`;
+            return isoDate;
+        }
+        return dStr; // Nếu đã là định dạng chuẩn YYYY-MM-DD
+    } catch (e) { return dStr; }
+}
+
 async function fetchCSV(gid) {
     const response = await fetch(`${sheetBaseUrl}&gid=${gid}&t=${new Date().getTime()}`);
     const text = await response.text();
@@ -81,25 +98,21 @@ async function fetchCSV(gid) {
 
 async function initApp() {
     try {
-        // Tải cả 2 bảng cùng lúc
         const [dataPlan, dataActual] = await Promise.all([
             fetchCSV(gidPlan),
             fetchCSV(gidActual)
         ]);
 
-        const todayDate = new Date();
-        todayDate.setHours(0,0,0,0);
-        const todayStr = todayDate.toISOString().split('T')[0];
-
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // 1. XỬ LÝ DỮ LIỆU KẾ HOẠCH (Dữ liệu cũ - Nhiều màu)
+        // 1. XỬ LÝ KẾ HOẠCH
         dataPlan.forEach(item => {
             const machine = item["Ten_May"], job = item["Ma_Hang"], start = item["Ngay_Bat_Dau"], end = item["Ngay_Ket_Thuc"];
             if (!machine || !job || !start) return;
             machineSet.add(machine);
-            
             const status = (item["Status"] || "").toUpperCase();
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
@@ -117,31 +130,30 @@ async function initApp() {
             });
         });
 
-        // 2. XỬ LÝ DỮ LIỆU THỰC TẾ (NhapGiaCong - Màu vàng nhạt)
+        // 2. XỬ LÝ THỰC TẾ (Actual - Màu vàng nhạt)
         dataActual.forEach(item => {
-            const machine = item["may_gia_cong"], job = item["ma_ban_ve"], start = item["thoi_diem_bat_dau"], end = item["thoi_diem_hoan_thanh"];
-            if (!machine || !job || !start) return;
+            const machine = item["may_gia_cong"];
+            const job = item["ma_ban_ve"];
+            const startRaw = item["thoi_diem_bat_dau"];
+            const endRaw = item["thoi_diem_hoan_thanh"];
+
+            if (!machine || !job || !startRaw) return;
             machineSet.add(machine);
 
-            // Chuyển đổi định dạng ngày từ Excel (DD/MM/YYYY) sang ISO (YYYY-MM-DD) nếu cần
-            const parseDate = (dStr) => {
-                if(!dStr) return null;
-                const parts = dStr.split(' ')[0].split('/');
-                return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : dStr;
-            };
+            const startTime = parseExcelDate(startRaw);
+            let endTime = parseExcelDate(endRaw);
 
-            const startDate = parseDate(start);
-            let endDate = parseDate(end) || parseDate(start);
-            let endD = new Date(endDate);
-            endD.setDate(endD.getDate() + 1);
+            // Nếu đang Processing (chưa có ngày hoàn thành), cho kết thúc là thời gian hiện tại
+            if (!endTime || endTime.trim() === "") {
+                endTime = new Date().toISOString(); 
+            }
 
             events.push({
                 resourceId: machine,
-                title: "IN PROG: " + job,
-                start: startDate,
-                end: endD.toISOString().split('T')[0],
-                className: 'actual-event', // Áp dụng màu vàng nhạt từ CSS
-                extendedProps: { isActual: true }
+                title: "ACTUAL: " + job,
+                start: startTime,
+                end: endTime,
+                className: 'actual-event'
             });
         });
 
@@ -159,7 +171,7 @@ async function initApp() {
             height: '100%',
             resourceAreaWidth: '120px',
             resourceAreaHeaderContent: 'MACHINE',
-            slotMinWidth: 30,
+            slotMinWidth: 35,
             nowIndicator: true,
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
@@ -171,6 +183,7 @@ async function initApp() {
                 if (dateStr === todayStr) arg.el.classList.add('today-day');
                 else if (day === 6) arg.el.classList.add('sat-day');
                 else if (day === 0) arg.el.classList.add('sun-day');
+                const todayDate = new Date(); todayDate.setHours(0,0,0,0);
                 if (arg.date < todayDate && dateStr !== todayStr) arg.el.classList.add('past-day');
             },
             slotLabelDidMount: function(arg) {
@@ -180,7 +193,7 @@ async function initApp() {
             }
         });
         calendar.render();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Lỗi:", e); }
 }
 
 setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
