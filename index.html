@@ -7,23 +7,41 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
+        
+        /* --- HEADER & CLOCK --- */
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
+        #currentTime { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 14px; 
+            font-weight: bold; 
+            color: #ffff00; /* Đổi sang màu vàng cho nổi bật trên nền xanh */
+            background: rgba(0,0,0,0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        .sat-day { background-color: #f0f7ff !important; } 
-        .sun-day { background-color: #fff5f5 !important; } 
-        .past-day { background-color: #fcf9e8 !important; } 
+        /* --- MÀU NỀN CỘT THỨ 7 / CN / QUÁ KHỨ --- */
+        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh dương nhạt */
+        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Hồng nhạt */
+        .past-day { background-color: #fcf9e8 !important; } /* Ngày cũ: Vàng phớt */
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        .fc-event { border: none !important; margin-bottom: 1px !important; }
+        /* Màu chữ Thứ 7/CN trên thanh tiêu đề */
+        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; }
+        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; }
+
+        /* --- THANH CÔNG VIỆC --- */
+        .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* THANH THỰC TẾ (Màu vàng nhạt) */
+        /* Thanh THỰC TẾ (Actual - Màu vàng nhạt) */
         .actual-event { 
             background-color: #fff9c4 !important; 
             border: 1px solid #fbc02d !important; 
@@ -71,7 +89,6 @@ function stringToColor(str) {
     return `hsl(${hue}, 80%, 40%)`;
 }
 
-// Hàm đọc ngày tháng cực mạnh để xử lý DD/MM/YYYY HH:mm:ss
 function parseAnyDate(dStr) {
     if (!dStr || dStr.trim() === "") return null;
     const parts = dStr.split(' ');
@@ -79,7 +96,7 @@ function parseAnyDate(dStr) {
     if (d.length === 3) {
         return `${d[2]}-${d[1].padStart(2, '0')}-${d[0].padStart(2, '0')}T${parts[1] || "00:00:00"}`;
     }
-    return dStr; // Nếu đã là YYYY-MM-DD
+    return dStr; 
 }
 
 async function fetchCSV(url) {
@@ -123,13 +140,14 @@ async function initApp() {
                 end: endD.toISOString().split('T')[0],
                 backgroundColor: stringToColor(j),
                 borderColor: stringToColor(j),
+                extendedProps: { memo: item["Memo"] || "N/A" },
                 sortOrder: 1
             });
         });
 
-        // 2. DỮ LIỆU THỰC TẾ (Actual - Màu vàng nhạt)
+        // 2. DỮ LIỆU THỰC TẾ (Actual - Hiện Mã hàng + Công đoạn)
         dataActual.forEach(item => {
-            const m = item["may_gia_cong"], j = item["ma_ban_ve"], s = item["thoi_diem_bat_dau"], e = item["thoi_diem_hoan_thanh"];
+            const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = item["thoi_diem_bat_dau"], e = item["thoi_diem_hoan_thanh"];
             if (!m || !j || !s) return;
             machineSet.add(m);
 
@@ -141,10 +159,11 @@ async function initApp() {
 
             events.push({
                 resourceId: m,
-                title: "ACTUAL: " + j,
+                title: "ACTUAL: " + j + " (" + (step || "") + ")",
                 start: startTime,
                 end: endTime,
                 className: 'actual-event',
+                extendedProps: { memo: "NV: " + (item["msnv"] || "") + " | Qty: " + (item["so_luong_GC"] || "") },
                 sortOrder: 2
             });
         });
@@ -165,10 +184,28 @@ async function initApp() {
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
             resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
+            
+            // TÔ MÀU NỀN CHO CỘT THỨ 7 / CN
             slotDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('sat-day');
                 if (day === 0) arg.el.classList.add('sun-day');
+            },
+
+            // TÔ MÀU TIÊU ĐỀ THỨ 7 / CN
+            slotLabelDidMount: function(arg) {
+                const day = arg.date.getDay();
+                if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
+                if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
+            },
+
+            // KÍCH CHUỘT HIỆN GHI CHÚ
+            eventClick: function(info) {
+                alert(
+                    "【" + info.event.resourceId + "】\n" +
+                    "Content: " + info.event.title + "\n" +
+                    "Detail: " + info.event.extendedProps.memo
+                );
             }
         });
         calendar.render();
@@ -179,7 +216,10 @@ async function initApp() {
     } catch (e) { console.error(e); }
 }
 
-setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
+setInterval(() => { 
+    document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); 
+}, 1000);
+
 initApp();
 </script>
 </body>
