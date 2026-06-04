@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Plan vs Actual Timeline</title>
+    <title>JAPAN MC - Plan vs Actual PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
@@ -14,22 +14,29 @@
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* --- MÀU NỀN CỘT --- */
+        /* Màu nền cột */
         .sat-day { background-color: #f0f7ff !important; } 
         .sun-day { background-color: #fff5f5 !important; } 
         .past-day { background-color: #fcf9e8 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; }
 
-        /* --- THANH KẾ HOẠCH & THỰC TẾ --- */
-        .fc-event { border: none !important; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        /* --- THANH CÔNG VIỆC --- */
+        .fc-event { border: none !important; margin-bottom: 1px !important; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* Màu vàng nhạt cho thanh THỰC TẾ (Actual) */
-        .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; z-index: 2; }
-        .actual-event .fc-event-title { color: #856404 !important; text-shadow: none !important; font-size: 9px !important; }
+        /* Thanh THỰC TẾ (Actual - Màu vàng nhạt) */
+        .actual-event { 
+            background-color: #fffde7 !important; /* Vàng chanh nhạt */
+            border: 1px solid #fbc02d !important; 
+            height: 16px !important; /* Làm mỏng hơn để phân biệt */
+        }
+        .actual-event .fc-event-title { 
+            color: #856404 !important; 
+            text-shadow: none !important; 
+            font-size: 9px !important;
+            line-height: 14px !important;
+        }
 
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -57,9 +64,10 @@
 
 <script>
 const sheetBaseUrl = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv';
-const gidPlan = '2118073741'; // Tab KH_NhanHang
-const gidActual = '1473866023'; // Tab NhapGiaCong
+const gidPlan = '2118073741';
+const gidActual = '1473866023';
 
+// Hàm băm màu cho Mã hàng
 function stringToColor(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) { hash = (hash * 131) + str.charCodeAt(i); hash = hash & hash; }
@@ -67,20 +75,18 @@ function stringToColor(str) {
     return `hsl(${hue}, 80%, 40%)`;
 }
 
-// Hàm xử lý ngày tháng từ định dạng DD/MM/YYYY HH:mm:ss của Excel
-function parseExcelDate(dStr) {
+// HÀM QUAN TRỌNG: Chuyển đổi DD/MM/YYYY HH:mm:ss sang định dạng chuẩn ISO
+function parseVnDate(dStr) {
     if (!dStr || dStr.trim() === "") return null;
     try {
-        // Tách phần ngày và phần giờ
         const parts = dStr.split(' ');
-        const dateParts = parts[0].split('/');
-        if (dateParts.length === 3) {
-            // Chuyển thành YYYY-MM-DD
-            let isoDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-            if (parts[1]) isoDate += `T${parts[1]}`;
-            return isoDate;
-        }
-        return dStr; // Nếu đã là định dạng chuẩn YYYY-MM-DD
+        const d = parts[0].split('/');
+        if (d.length !== 3) return dStr; // Nếu đã đúng chuẩn YYYY-MM-DD
+        const year = d[2];
+        const month = d[1].padStart(2, '0');
+        const day = d[0].padStart(2, '0');
+        const time = parts[1] || "00:00:00";
+        return `${year}-${month}-${day}T${time}`;
     } catch (e) { return dStr; }
 }
 
@@ -103,64 +109,55 @@ async function initApp() {
             fetchCSV(gidActual)
         ]);
 
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // 1. XỬ LÝ KẾ HOẠCH
+        // 1. DỮ LIỆU KẾ HOẠCH (Xếp trên)
         dataPlan.forEach(item => {
-            const machine = item["Ten_May"], job = item["Ma_Hang"], start = item["Ngay_Bat_Dau"], end = item["Ngay_Ket_Thuc"];
-            if (!machine || !job || !start) return;
-            machineSet.add(machine);
+            const m = item["Ten_May"], j = item["Ma_Hang"], s = item["Ngay_Bat_Dau"], e = item["Ngay_Ket_Thuc"];
+            if (!m || !j || !s) return;
+            machineSet.add(m);
             const status = (item["Status"] || "").toUpperCase();
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
 
-            let endD = new Date(end || start);
+            let endD = new Date(e || s);
             endD.setDate(endD.getDate() + 1);
 
             events.push({
-                resourceId: machine,
-                title: job + " (" + (item["Ten_Cong_Doan"] || "") + ")",
-                start: start,
+                resourceId: m,
+                title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")",
+                start: s,
                 end: endD.toISOString().split('T')[0],
-                backgroundColor: stringToColor(job),
-                borderColor: stringToColor(job)
+                backgroundColor: stringToColor(j),
+                borderColor: stringToColor(j),
+                sortOrder: 1 // Ép nằm trên
             });
         });
 
-        // 2. XỬ LÝ THỰC TẾ (Actual - Màu vàng nhạt)
+        // 2. DỮ LIỆU THỰC TẾ (Xếp dưới song song)
         dataActual.forEach(item => {
-            const machine = item["may_gia_cong"];
-            const job = item["ma_ban_ve"];
-            const startRaw = item["thoi_diem_bat_dau"];
-            const endRaw = item["thoi_diem_hoan_thanh"];
+            const m = item["may_gia_cong"], j = item["ma_ban_ve"], s = item["thoi_diem_bat_dau"], e = item["thoi_diem_hoan_thanh"];
+            if (!m || !j || !s) return;
+            machineSet.add(m);
 
-            if (!machine || !job || !startRaw) return;
-            machineSet.add(machine);
+            const startTime = parseVnDate(s);
+            let endTime = parseVnDate(e);
 
-            const startTime = parseExcelDate(startRaw);
-            let endTime = parseExcelDate(endRaw);
-
-            // Nếu đang Processing (chưa có ngày hoàn thành), cho kết thúc là thời gian hiện tại
-            if (!endTime || endTime.trim() === "") {
-                endTime = new Date().toISOString(); 
+            // Nếu đang Processing, thanh vàng kéo dài đến Hiện tại
+            if (!endTime || endTime === "" || item["trang_thai"] === "Processing") {
+                endTime = new Date().toISOString();
             }
 
             events.push({
-                resourceId: machine,
-                title: "ACTUAL: " + job,
+                resourceId: m,
+                title: "ACTUAL: " + j,
                 start: startTime,
                 end: endTime,
-                className: 'actual-event'
+                className: 'actual-event',
+                sortOrder: 2 // Ép nằm dưới
             });
         });
-
-        document.getElementById('runCount').innerText = run;
-        document.getElementById('waitCount').innerText = wait;
-        document.getElementById('delayCount').innerText = delay;
-        document.getElementById('outputQty').innerText = qty;
 
         const calendarEl = document.getElementById('calendar');
         calendarEl.innerHTML = '';
@@ -173,27 +170,23 @@ async function initApp() {
             resourceAreaHeaderContent: 'MACHINE',
             slotMinWidth: 35,
             nowIndicator: true,
+            eventOrder: 'sortOrder', // Quy tắc sắp xếp thanh nào nằm trên
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
             resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
             slotDidMount: function(arg) {
-                const dateStr = arg.date.toISOString().split('T')[0];
                 const day = arg.date.getDay();
-                if (dateStr === todayStr) arg.el.classList.add('today-day');
-                else if (day === 6) arg.el.classList.add('sat-day');
-                else if (day === 0) arg.el.classList.add('sun-day');
-                const todayDate = new Date(); todayDate.setHours(0,0,0,0);
-                if (arg.date < todayDate && dateStr !== todayStr) arg.el.classList.add('past-day');
-            },
-            slotLabelDidMount: function(arg) {
-                const day = arg.date.getDay();
-                if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
-                if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
+                if (day === 6) arg.el.classList.add('sat-day');
+                if (day === 0) arg.el.classList.add('sun-day');
             }
         });
         calendar.render();
-    } catch (e) { console.error("Lỗi:", e); }
+        document.getElementById('runCount').innerText = run;
+        document.getElementById('waitCount').innerText = wait;
+        document.getElementById('delayCount').innerText = delay;
+        document.getElementById('outputQty').innerText = qty;
+    } catch (e) { console.error(e); }
 }
 
 setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
