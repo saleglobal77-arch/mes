@@ -2,57 +2,59 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Plan vs Actual Management</title>
-    <!-- Tải thư viện FullCalendar và Scheduler -->
+    <title>JAPAN MC - Production Control Center</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     
     <style>
         /* --- GIAO DIỆN TỔNG THỂ --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
+        .header { background: #16a34a; color: white; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* --- HEADER & ĐỒNG HỒ NEON --- */
-        .header { background: #16a34a; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; }
+        /* ĐỒNG HỒ ĐIỆN TỬ */
         #currentTime { 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 18px; font-weight: bold; color: #00ff00; 
+            font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold; color: #00ff00; 
             background: #000000; padding: 5px 15px; border-radius: 6px; border: 2px solid #ffffff;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); min-width: 200px; text-align: center;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); min-width: 200px; text-align: center;
         }
 
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* --- KHU VỰC KPI --- */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
-
+        
         /* --- LỊCH --- */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
-        /* --- MÀU NỀN CỘT THỨ 7 / CN / QUÁ KHỨ --- */
-        .sat-day { background-color: #e6f7ff !important; } /* Thứ 7: Xanh nhạt */
-        .sun-day { background-color: #fff1f0 !important; } /* Chủ Nhật: Đỏ nhạt */
-        .past-day { background-color: #fcf9e8 !important; } /* Ngày cũ: Vàng phớt */
+
+        /* MÀU NỀN CỘT THỨ 7 / CN */
+        .sat-day { background-color: #f0f7ff !important; } 
+        .sun-day { background-color: #fff5f5 !important; } 
+        .past-day { background-color: #fcf9e8 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        /* Màu chữ Thứ 7/CN trên thanh tiêu đề */
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; }
-
-        /* --- CÀI ĐẶT CÁC THANH CÔNG VIỆC --- */
-        .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
+        /* THANH CÔNG VIỆC */
+        .fc-event { border: none !important; margin-bottom: 1px !important; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* Chỉnh riêng thanh THỰC TẾ (Màu vàng, chữ Đen) */
+        /* THANH THỰC TẾ (実績) - CHỮ ĐEN RÕ NÉT */
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
         .actual-event .fc-event-time, .actual-event .fc-event-title { 
             color: #000000 !important; text-shadow: none !important; font-size: 10px !important; 
         }
 
-        /* Tiêu đề Máy bên trái */
-        .fc-datagrid-cell-main { font-weight: bold; font-size: 11px; }
+        /* --- TÙY CHỈNH CỘT MÁY (BÊN TRÁI) --- */
+        .fc-datagrid-cell-main { width: 100%; }
+        .machine-label-container { display: flex; flex-direction: column; padding: 4px 0; }
+        .machine-name { font-weight: bold; font-size: 11px; color: #1e40af; padding-bottom: 2px; }
+        .status-label { font-size: 9px; padding-left: 10px; border-left: 2px solid transparent; }
+        .status-plan { color: #16a34a; border-left-color: #16a34a; }
+        .status-actual { color: #666; border-left-color: #fbc02d; margin-top: 12px; }
+
+        /* XÓA ĐƯỜNG KẺ GIỮA KẾ HOẠCH VÀ THỰC TẾ */
+        tr[data-resource-id$="_act"] td { border-top: none !important; }
+        .fc-timeline-lane-frame { background: transparent !important; }
+
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
@@ -60,7 +62,7 @@
 
 <div class="header">
     <div>
-        <span style="font-size: 14px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
+        <span style="font-size: 13px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
         <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
     </div>
     <div id="currentTime"></div>
@@ -77,11 +79,9 @@
 </div>
 
 <script>
-/* --- CÀI ĐẶT ĐƯỜNG LINK --- */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 
-/* --- HÀM TẠO MÀU MẠNH CHO MÃ HÀNG --- */
 function stringToColor(str) {
     if(!str) return '#16a34a';
     let hash = 0;
@@ -89,7 +89,6 @@ function stringToColor(str) {
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
-/* --- BỘ GIẢI MÃ NGÀY THÁNG THÔNG MINH --- */
 function smartParseDate(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return null;
     try {
@@ -99,16 +98,13 @@ function smartParseDate(dStr) {
             let y = parts[2].length === 2 ? "20" + parts[2] : parts[2];
             let m = parts[1].padStart(2, '0');
             let d = parts[0].padStart(2, '0');
-            // Nếu Sheet lưu Y-M-D
             if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
-            // Nếu Sheet lưu D/M/Y
             return `${y}-${m}-${d}`;
         }
         return datePart;
     } catch (e) { return null; }
 }
 
-/* --- TẢI CSV KHÔNG BỎ SÓT DÒNG --- */
 async function fetchCSV(url) {
     try {
         const response = await fetch(url + '&t=' + new Date().getTime());
@@ -125,25 +121,20 @@ async function fetchCSV(url) {
     } catch (e) { return []; }
 }
 
-/* --- KHỞI TẠO LỊCH --- */
 async function initApp() {
     try {
         const [dataPlan, dataActual] = await Promise.all([fetchCSV(urlPlan), fetchCSV(urlActual)]);
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // Gom danh sách máy
-        dataPlan.forEach(i => { if(i["Ten_May"]) machineSet.add(i["Ten_May"]); });
-        dataActual.forEach(i => { if(i["may_gia_cong"]) machineSet.add(i["may_gia_cong"]); });
-
-        // 1. Xử lý Kế hoạch (Dòng trên)
+        // 1. Xử lý Kế hoạch
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = smartParseDate(item["Ngay_Bat_Dau"]), e = smartParseDate(item["Ngay_Ket_Thuc"]);
             if (!m || !j || !s) return;
+            machineSet.add(m);
             const status = (item["Status"] || "").toUpperCase();
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
-
             let endD = new Date(e || s); endD.setDate(endD.getDate() + 1);
 
             events.push({
@@ -151,31 +142,33 @@ async function initApp() {
                 title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")",
                 start: s, end: endD.toISOString().split('T')[0],
                 backgroundColor: stringToColor(j), borderColor: stringToColor(j),
-                extendedProps: { memo: item["Memo"] || "None" }
+                extendedProps: { memo: item["Memo"] || "N/A" }
             });
         });
 
-        // 2. Xử lý Thực tế (Dòng dưới)
+        // 2. Xử lý Thực tế
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
+            machineSet.add(m);
 
             let endTime = e;
             if (!endTime || endTime === "" || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
 
             events.push({
                 resourceId: m + "_act",
-                title: "ACTUAL: " + j + " (" + (step || "") + ")",
+                title: j + " (" + (step || "") + ")",
                 start: s, end: endTime, className: 'actual-event',
                 extendedProps: { memo: "NV: " + (item["msnv"] || "") }
             });
         });
 
-        // Tạo dòng máy gộp 2 hàng
+        // Tạo cấu trúc Resource (Máy gộp)
         let resources = [];
         Array.from(machineSet).sort().forEach(m => {
-            resources.push({ id: m + "_plan", title: m + " | 計画", machineGroup: m });
-            resources.push({ id: m + "_act", title: "　　　 └ 実績", machineGroup: m });
+            // Hiển thị tên máy chỉ ở dòng kế hoạch
+            resources.push({ id: m + "_plan", title: m, type: 'plan' });
+            resources.push({ id: m + "_act", title: '', type: 'act' });
         });
 
         const calendarEl = document.getElementById('calendar');
@@ -183,19 +176,31 @@ async function initApp() {
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
-            locale: 'ja', height: '100%', resourceAreaWidth: '180px',
+            locale: 'ja', height: '100%', resourceAreaWidth: '160px',
             resourceAreaHeaderContent: 'MACHINE / STATUS',
             slotMinWidth: 35, nowIndicator: true,
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             resources: resources,
             events: events,
-            resourceLabelDidMount: function(arg) {
-                if (arg.resource.id.includes("_plan")) {
-                    arg.el.style.color = stringToColor(arg.resource.extendedProps.machineGroup);
+            
+            // --- TÙY CHỈNH HIỂN THỊ CỘT BÊN TRÁI ---
+            resourceLabelContent: function(arg) {
+                const res = arg.resource;
+                const isPlan = res.id.includes("_plan");
+                let html = document.createElement('div');
+                html.className = 'machine-label-container';
+                
+                if (isPlan) {
+                    html.innerHTML = `
+                        <div class="machine-name">${res.title}</div>
+                        <div class="status-label status-plan">計画 (Plan)</div>
+                    `;
                 } else {
-                    arg.el.style.color = "#666"; arg.el.style.fontSize = "10px";
+                    html.innerHTML = `<div class="status-label status-actual">実績 (Actual)</div>`;
                 }
+                return { domNodes: [html] };
             },
+
             slotDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('sat-day');
@@ -207,7 +212,7 @@ async function initApp() {
                 if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
             },
             eventClick: function(info) {
-                alert("【" + info.event.title + "】\nMemo: " + info.event.extendedProps.memo);
+                alert("【" + info.event.title + "】\nMemo: " + (info.event.extendedProps.memo || "-"));
             }
         });
         calendar.render();
@@ -215,7 +220,7 @@ async function initApp() {
         document.getElementById('waitCount').innerText = wait;
         document.getElementById('delayCount').innerText = delay;
         document.getElementById('outputQty').innerText = qty;
-    } catch (e) { console.error("Lỗi:", e); }
+    } catch (e) { console.error(e); }
 }
 
 function updateClock() {
