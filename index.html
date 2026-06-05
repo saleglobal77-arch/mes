@@ -3,33 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <title>JAPAN MC - Plan vs Actual PRO</title>
+    <!-- Tải thư viện lịch FullCalendar -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
+    
     <style>
-        /* --- GIAO DIỆN CHUNG --- */
+        /* --- GIAO DIỆN TỔNG THỂ --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
-        .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* --- ĐỒNG HỒ ĐIỆN TỬ (Màu vàng rực trên nền đen) --- */
+        /* --- THANH TIÊU ĐỀ & ĐỒNG HỒ (Màu xanh, giờ Neon rõ nét) --- */
+        .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
         #currentTime { 
-            font-family: 'Digital-7', 'Courier New', Courier, monospace; 
+            font-family: 'Courier New', Courier, monospace; 
             font-size: 18px; font-weight: bold; color: #00ff00; 
-            background: #000000; padding: 5px 12px; border-radius: 6px; border: 2px solid #ffffff;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); min-width: 180px; text-align: center;
+            background: #000000; padding: 4px 12px; border-radius: 6px; border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); min-width: 180px; text-align: center;
         }
 
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
-        .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        
+        /* --- CHỈ SỐ KPI --- */
+        .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
+
+        /* --- KHUNG LỊCH --- */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* --- MÀU CỘT THỨ 7 / CN --- */
+        /* --- MÀU NỀN CỘT THỨ 7 / CN --- */
         .sat-day { background-color: #e6f7ff !important; } 
         .sun-day { background-color: #fff1f0 !important; } 
         .past-day { background-color: #fcf9e8 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
+
+        /* Màu chữ Thứ 7/CN trên tiêu đề */
         .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; }
         .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; }
 
@@ -37,7 +45,7 @@
         .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* --- THANH THỰC TẾ (Màu vàng - Chữ đen rõ nét) --- */
+        /* THANH THỰC TẾ (Màu vàng - Chữ Đen rõ nét) */
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
         .actual-event .fc-event-time { color: #000000 !important; font-weight: bold !important; padding-left: 3px; }
         .actual-event .fc-event-title { color: #000000 !important; text-shadow: none !important; font-size: 10px !important; }
@@ -50,7 +58,7 @@
 
 <div class="header">
     <div>
-        <span style="font-size: 14px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
+        <span style="font-size: 13px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
         <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
     </div>
     <div id="currentTime"></div>
@@ -67,46 +75,54 @@
 </div>
 
 <script>
-/* --- LINK CSV (Giữ nguyên GID của bạn) --- */
+/* --- LINK DỮ LIỆU --- */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 
 function stringToColor(str) {
-    if(!str) return '#ccc';
+    if(!str) return '#16a34a';
     let hash = 0;
     for (let i = 0; i < str.length; i++) { hash = (hash * 131) + str.charCodeAt(i); hash = hash & hash; }
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
-/* --- HÀM GIẢI MÃ NGÀY THÁNG CỰC MẠNH --- */
-function parseAnyDate(dStr) {
-    if (!dStr || dStr.trim() === "") return null;
-    let cleanStr = dStr.split(' ')[0]; // Bỏ phần giờ nếu có
-    let parts = cleanStr.split('/');
-    if (parts.length === 3) {
-        let y = parts[2];
-        if (y.length === 2) y = "20" + y; // Sửa lỗi năm 26 -> 2026
-        return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-    }
-    return cleanStr; 
+/* --- HÀM GIẢI MÃ NGÀY THÁNG THÔNG MINH (Xử lý lỗi năm 26 và định dạng VN/JP) --- */
+function smartParseDate(dStr) {
+    if (!dStr || dStr.trim() === "" || dStr === "null") return null;
+    try {
+        let datePart = dStr.split(' ')[0]; // Lấy phần ngày, bỏ phần giờ 0:00
+        let parts = datePart.includes('/') ? datePart.split('/') : datePart.split('-');
+        
+        if (parts.length === 3) {
+            let y = parts[0].length === 4 ? parts[0] : parts[2]; // Tìm năm
+            let m = parts[0].length === 4 ? parts[1] : parts[1]; // Tìm tháng
+            let d = parts[0].length === 4 ? parts[2] : parts[0]; // Tìm ngày
+            
+            if (y.length === 2) y = "20" + y; // Sửa lỗi 26 -> 2026
+            return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+        return datePart;
+    } catch (e) { return null; }
 }
 
-/* --- HÀM TẢI CSV KHÔNG BỎ SÓT DÒNG CUỐI --- */
+/* --- HÀM TẢI CSV AN TOÀN --- */
 async function fetchCSV(url) {
-    const response = await fetch(url + '&t=' + new Date().getTime());
-    const text = await response.text();
-    // Tách dòng linh hoạt (xử lý cả \n và \r\n)
-    const rows = text.split(/\r?\n/).filter(line => line.trim() !== "").map(row => 
-        row.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim())
-    );
-    const headers = rows[0];
-    return rows.slice(1).map(row => {
-        let obj = {};
-        headers.forEach((h, i) => { if(h) obj[h] = row[i]; });
-        return obj;
-    });
+    try {
+        const response = await fetch(url + '&t=' + new Date().getTime());
+        const text = await response.text();
+        const rows = text.split(/\r?\n/).filter(line => line.trim() !== "").map(row => 
+            row.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim())
+        );
+        const headers = rows[0];
+        return rows.slice(1).map(row => {
+            let obj = {};
+            headers.forEach((h, i) => { if(h) obj[h] = row[i]; });
+            return obj;
+        });
+    } catch (e) { console.error("Lỗi tải file:", e); return []; }
 }
 
+/* --- KHỞI TẠO --- */
 async function initApp() {
     try {
         const [dataPlan, dataActual] = await Promise.all([fetchCSV(urlPlan), fetchCSV(urlActual)]);
@@ -115,7 +131,7 @@ async function initApp() {
 
         // 1. Xử lý Kế hoạch
         dataPlan.forEach(item => {
-            const m = item["Ten_May"], j = item["Ma_Hang"], s = parseAnyDate(item["Ngay_Bat_Dau"]), e = parseAnyDate(item["Ngay_Ket_Thuc"]);
+            const m = item["Ten_May"], j = item["Ma_Hang"], s = smartParseDate(item["Ngay_Bat_Dau"]), e = smartParseDate(item["Ngay_Ket_Thuc"]);
             if (!m || !j || !s) return;
             machineSet.add(m);
             const status = (item["Status"] || "").toUpperCase();
@@ -126,20 +142,16 @@ async function initApp() {
             endD.setDate(endD.getDate() + 1);
 
             events.push({
-                resourceId: m,
-                title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")",
-                start: s,
-                end: endD.toISOString().split('T')[0],
-                backgroundColor: stringToColor(j),
-                borderColor: stringToColor(j),
-                extendedProps: { memo: item["Memo"] || "N/A" },
-                sortOrder: 1
+                resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")",
+                start: s, end: endD.toISOString().split('T')[0],
+                backgroundColor: stringToColor(j), borderColor: stringToColor(j),
+                extendedProps: { memo: item["Memo"] || "None" }, sortOrder: 1
             });
         });
 
-        // 2. Xử lý Thực tế (Màu vàng, Chữ đen)
+        // 2. Xử lý Thực tế
         dataActual.forEach(item => {
-            const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = parseAnyDate(item["thoi_diem_bat_dau"]), e = parseAnyDate(item["thoi_diem_hoan_thanh"]);
+            const m = item["may_gia_cong"], j = item["ma_ban_ve"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
             machineSet.add(m);
 
@@ -147,13 +159,9 @@ async function initApp() {
             if (!endTime || endTime === "" || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
 
             events.push({
-                resourceId: m,
-                title: "ACTUAL: " + j + " (" + (step || "") + ")",
-                start: s,
-                end: endTime,
-                className: 'actual-event',
-                extendedProps: { memo: "NV: " + (item["msnv"] || "") + " | Qty: " + (item["so_luong_GC"] || "") },
-                sortOrder: 2
+                resourceId: m, title: "ACTUAL: " + j + " (" + (item["thu_tu_gc"] || "") + ")",
+                start: s, end: endTime, className: 'actual-event',
+                extendedProps: { memo: "NV: " + (item["msnv"] || "") }, sortOrder: 2
             });
         });
 
@@ -179,7 +187,7 @@ async function initApp() {
                 if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
             },
             eventClick: function(info) {
-                alert("【" + info.event.resourceId + "】\nContent: " + info.event.title + "\nDetail: " + info.event.extendedProps.memo);
+                alert("【" + info.event.resourceId + "】\nContent: " + info.event.title + "\nMemo: " + info.event.extendedProps.memo);
             }
         });
         calendar.render();
@@ -187,7 +195,7 @@ async function initApp() {
         document.getElementById('waitCount').innerText = wait;
         document.getElementById('delayCount').innerText = delay;
         document.getElementById('outputQty').innerText = qty;
-    } catch (e) { console.error("Lỗi dữ liệu:", e); }
+    } catch (e) { console.error(e); }
 }
 
 function updateClock() {
