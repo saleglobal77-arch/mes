@@ -2,8 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Plan vs Actual PRO</title>
-    <!-- Tải thư viện FullCalendar -->
+    <title>JAPAN MC - Plan vs Actual Control</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     
@@ -12,7 +11,7 @@
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* ĐỒNG HỒ ĐIỆN TỬ NEON */
+        /* ĐỒNG HỒ NEON */
         #currentTime { 
             font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold; color: #00ff00; 
             background: #000; padding: 5px 15px; border-radius: 6px; border: 2px solid #fff; min-width: 200px; text-align: center;
@@ -24,13 +23,13 @@
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* --- MÀU NỀN CỘT THỨ 7 / CN / HÔM NAY --- */
+        /* MÀU NỀN CỘT THỨ 7 / CN / HÔM NAY */
         .sat-day { background-color: #f0f7ff !important; } 
         .sun-day { background-color: #fff5f5 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        /* --- THANH CÔNG VIỆC --- */
+        /* THANH CÔNG VIỆC */
         .fc-event { border: none !important; margin-bottom: 1px !important; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
@@ -40,19 +39,17 @@
             color: #000000 !important; text-shadow: none !important; font-size: 10px !important; 
         }
 
-        /* --- THIẾT KẾ GỘP DÒNG TÊN MÁY --- */
+        /* --- THIẾT KẾ CỘT MÁY GIỐNG HÌNH VẼ --- */
         /* Xóa đường kẻ ngang giữa dòng Plan và Actual của cột MACHINE */
-        tr[data-resource-id$="_plan"] .fc-datagrid-cell { border-bottom: none !important; }
-        tr[data-resource-id$="_act"] .fc-datagrid-cell { border-top: none !important; }
-       
-
+        tr[data-resource-id$="_plan"] .fc-datagrid-cell-frame { border-bottom: none !important; }
+        tr[data-resource-id$="_act"] .fc-datagrid-cell-frame { border-top: none !important; }
         
         /* Chỉnh tên máy nằm giữa 2 dòng */
-        .machine-label { 
+        .machine-label-text { 
             font-weight: bold; font-size: 11px; padding: 5px; 
             display: flex; align-items: center; height: 100%;
         }
-        .status-label { 
+        .status-label-text { 
             font-weight: bold; font-size: 10px; text-align: center; 
             display: flex; align-items: center; justify-content: center; height: 100%;
         }
@@ -81,7 +78,7 @@
 </div>
 
 <script>
-/* --- CÀI ĐẶT LINK DỮ LIỆU --- */
+/* --- CẤU HÌNH LINK --- */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 
@@ -141,22 +138,24 @@ async function initApp() {
             events.push({ resourceId: m + "_act", title: j + " (" + (step || "") + ") (Actual)", start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "NV: " + (item["msnv"] || "") } });
         });
 
-        // Tạo cấu trúc Resource 2 cột: MACHINE và STATUS
+        // TẠO CẤU TRÚC RESOURCE 2 CỘT: MACHINE và STATUS
         let resources = [];
         Object.keys(machineMap).sort().forEach(m => {
-            // Dòng trên (Kế hoạch)
+            // Dòng Kế hoạch (計画)
             resources.push({ 
                 id: m + "_plan", 
-                displayMachine: m, 
-                displayStatus: '計画',
-                isTop: true 
+                machineName: m, 
+                statusName: '計画',
+                machineColor: stringToColor(m),
+                isTop: true
             });
-            // Dòng dưới (Thực tế)
+            // Dòng Thực tế (実績)
             resources.push({ 
                 id: m + "_act", 
-                displayMachine: '', // Để trống để gộp dòng
-                displayStatus: '実績',
-                isTop: false 
+                machineName: '', // Để trống để tạo hiệu ứng gộp ô
+                statusName: '実績',
+                machineColor: stringToColor(m),
+                isTop: false
             });
         });
 
@@ -165,32 +164,31 @@ async function initApp() {
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
-            locale: 'ja', height: '100%', resourceAreaWidth: '220px',
+            locale: 'ja', height: '100%', resourceAreaWidth: '240px',
             nowIndicator: true, slotMinWidth: 35,
             
-            // THIẾT LẬP CỘT TRÁI CHUẨN
+            // CÀI ĐẶT 2 CỘT BÊN TRÁI
             resourceColumns: [
                 {
                     headerContent: 'MACHINE',
-                    field: 'displayMachine',
                     width: '70%',
                     render: function(arg) {
                         let div = document.createElement('div');
-                        div.className = 'machine-label';
-                        div.innerText = arg.resource.extendedProps.displayMachine;
-                        // Tô màu tên máy
-                        div.style.color = stringToColor(arg.resource.id.split('_')[0]);
+                        div.className = 'machine-label-text';
+                        if (arg.resource.extendedProps.isTop) {
+                            div.innerText = arg.resource.extendedProps.machineName;
+                            div.style.color = arg.resource.extendedProps.machineColor;
+                        }
                         return { domNodes: [div] };
                     }
                 },
                 {
                     headerContent: 'STATUS',
-                    field: 'displayStatus',
                     width: '30%',
                     render: function(arg) {
                         let div = document.createElement('div');
-                        div.className = 'status-label';
-                        div.innerText = arg.resource.extendedProps.displayStatus;
+                        div.className = 'status-label-text';
+                        div.innerText = arg.resource.extendedProps.statusName;
                         div.style.color = arg.resource.extendedProps.isTop ? '#16a34a' : '#666';
                         return { domNodes: [div] };
                     }
