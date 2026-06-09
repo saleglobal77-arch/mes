@@ -2,16 +2,16 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Production Control PRO</title>
+    <title>JAPAN MC - Plan vs Actual PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     
     <style>
-        /* --- GIAO DIỆN CHUNG --- */
+        /* --- GIAO DIỆN TỔNG THỂ --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* ĐỒNG HỒ NEON CHỮ XANH NỀN ĐEN */
+        /* ĐỒNG HỒ ĐIỆN TỬ NEON */
         #currentTime { 
             font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold; color: #00ff00; 
             background: #000; padding: 5px 15px; border-radius: 6px; border: 2px solid #fff; min-width: 200px; text-align: center;
@@ -23,9 +23,10 @@
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* MÀU CỘT THỨ 7 / CN / TODAY */
+        /* MÀU NỀN CỘT THỨ 7 / CN / HÔM NAY */
         .sat-day { background-color: #f0f7ff !important; } 
         .sun-day { background-color: #fff5f5 !important; } 
+        .past-day { background-color: #fcf9e8 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
         .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
@@ -35,16 +36,17 @@
         .fc-event { border: none !important; margin-bottom: 1px !important; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         
-        /* THANH THỰC TẾ (実績) - CHỮ ĐEN DỄ NHÌN */
+        /* THANH THỰC TẾ (実績) - NỀN VÀNG CHỮ ĐEN */
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
         .actual-event .fc-event-time, .actual-event .fc-event-title { 
             color: #000000 !important; text-shadow: none !important; font-size: 10px !important; 
         }
 
-        /* GỘP DÒNG MÁY */
-        tr[data-resource-id$="_plan"] td { border-bottom: none !important; }
-        .machine-name-box { font-weight: bold; font-size: 11px; padding: 5px; }
-        .status-box { font-weight: bold; font-size: 10px; text-align: center; }
+        /* THIẾT KẾ CỘT MÁY 2 DÒNG */
+        tr[data-resource-id$="_plan"] .fc-datagrid-cell-frame { border-bottom: none !important; }
+        tr[data-resource-id$="_act"] .fc-datagrid-cell-frame { border-top: none !important; }
+        .machine-label-text { font-weight: bold; font-size: 11px; padding: 5px; display: flex; align-items: center; }
+        .status-label-text { font-weight: bold; font-size: 10px; text-align: center; display: flex; align-items: center; justify-content: center; height: 100%; }
 
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
@@ -70,7 +72,7 @@
 </div>
 
 <script>
-/* --- LINK DỮ LIỆU --- */
+/* --- CÀI ĐẶT LINK DỮ LIỆU --- */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 
@@ -81,23 +83,25 @@ function stringToColor(str) {
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
-/* --- HÀM GIẢI MÃ NGÀY THÁNG CÓ THỜI GIAN --- */
+/* --- BỘ GIẢI MÃ NGÀY THÁNG TOÀN DIỆN (Xử lý được cả Giờ:Phút) --- */
 function smartParseDateTime(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return null;
     try {
         let parts = dStr.split(' ');
         let datePart = parts[0];
         let timePart = parts[1] || "00:00:00";
-        
         let d = datePart.includes('/') ? datePart.split('/') : datePart.split('-');
+        
         if (d.length === 3) {
             let y = d[2].length === 2 ? "20" + d[2] : d[2];
             let m = d[1].padStart(2, '0');
             let day = d[0].padStart(2, '0');
+            // Xử lý trường hợp YYYY-MM-DD
             if (d[0].length === 4) return `${d[0]}-${d[1].padStart(2,'0')}-${d[2].padStart(2,'0')}T${timePart}`;
+            // Xử lý trường hợp DD/MM/YY
             return `${y}-${m}-${day}T${timePart}`;
         }
-        return datePart + "T" + timePart;
+        return null;
     } catch (e) { return null; }
 }
 
@@ -117,7 +121,7 @@ async function initApp() {
         let machineMap = {}, events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // Xử lý Kế hoạch (計画)
+        // Xử lý Kế hoạch (Dòng trên)
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = smartParseDateTime(item["Ngay_Bat_Dau"]), e = smartParseDateTime(item["Ngay_Ket_Thuc"]);
             if (!m || !j || !s) return;
@@ -126,24 +130,34 @@ async function initApp() {
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
 
-            events.push({
-                resourceId: m + "_plan",
-                title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")",
-                start: s, end: e, // Hiển thị theo đúng thời gian tính toán từ AppSheet
-                backgroundColor: stringToColor(j), borderColor: stringToColor(j),
-                extendedProps: { memo: item["Memo"] || "N/A" }
+            events.push({ 
+                resourceId: m + "_plan", 
+                title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", 
+                start: s, 
+                end: e || s, 
+                backgroundColor: stringToColor(j), 
+                borderColor: stringToColor(j), 
+                extendedProps: { memo: item["Memo"] || "N/A" } 
             });
         });
 
-        // Xử lý Thực tế (実績)
+        // Xử lý Thực tế (Dòng dưới)
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = smartParseDateTime(item["thoi_diem_bat_dau"]), e = smartParseDateTime(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
             machineMap[m] = m;
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
-            events.push({ resourceId: m + "_act", title: j + " (" + (step || "") + ") (Actual)", start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "NV: " + (item["msnv"] || "") } });
+            events.push({ 
+                resourceId: m + "_act", 
+                title: j + " (" + (step || "") + ") (Actual)", 
+                start: s, 
+                end: endTime, 
+                className: 'actual-event', 
+                extendedProps: { memo: "NV: " + (item["msnv"] || "") } 
+            });
         });
 
+        // Tạo Resource 2 cột
         let resources = [];
         Object.keys(machineMap).sort().forEach(m => {
             resources.push({ id: m + "_plan", mName: m, sName: '計画', isTop: true });
@@ -155,20 +169,33 @@ async function initApp() {
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
-            locale: 'ja', height: '100%', resourceAreaWidth: '220px',
+            locale: 'ja', height: '100%', resourceAreaWidth: '240px',
             nowIndicator: true, slotMinWidth: 35,
             resourceColumns: [
-                { headerContent: 'MACHINE', field: 'mName', width: '70%', render: function(arg) { 
-                    let div = document.createElement('div'); div.className = 'machine-name-box';
-                    if (arg.resource.extendedProps.isTop) { div.innerText = arg.resource.extendedProps.mName; div.style.color = stringToColor(arg.resource.extendedProps.mName); }
-                    return { domNodes: [div] }; 
-                }},
-                { headerContent: 'STATUS', field: 'sName', width: '30%', render: function(arg) {
-                    let div = document.createElement('div'); div.className = 'status-box';
-                    div.innerText = arg.resource.extendedProps.statusName || arg.resource.extendedProps.sName;
-                    div.style.color = arg.resource.extendedProps.isTop ? '#16a34a' : '#666';
-                    return { domNodes: [div] };
-                }}
+                {
+                    headerContent: 'MACHINE',
+                    width: '70%',
+                    render: function(arg) {
+                        let div = document.createElement('div');
+                        div.className = 'machine-label-text';
+                        if (arg.resource.extendedProps.isTop) {
+                            div.innerText = arg.resource.extendedProps.mName;
+                            div.style.color = stringToColor(arg.resource.extendedProps.mName);
+                        }
+                        return { domNodes: [div] };
+                    }
+                },
+                {
+                    headerContent: 'STATUS',
+                    width: '30%',
+                    render: function(arg) {
+                        let div = document.createElement('div');
+                        div.className = 'status-label-text';
+                        div.innerText = arg.resource.extendedProps.sName;
+                        div.style.color = arg.resource.extendedProps.isTop ? '#16a34a' : '#666';
+                        return { domNodes: [div] };
+                    }
+                }
             ],
             resources: resources,
             events: events,
@@ -181,10 +208,17 @@ async function initApp() {
             eventClick: function(info) { alert("【" + info.event.title + "】\nMemo: " + (info.event.extendedProps.memo || "-")); }
         });
         calendar.render();
-    } catch (e) { console.error(e); }
+        document.getElementById('runCount').innerText = run;
+        document.getElementById('waitCount').innerText = wait;
+        document.getElementById('delayCount').innerText = delay;
+        document.getElementById('outputQty').innerText = qty;
+    } catch (e) { console.error("Lỗi dữ liệu:", e); }
 }
 
-function updateClock() { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }
+function updateClock() {
+    const now = new Date();
+    document.getElementById('currentTime').innerText = now.toLocaleString('ja-JP');
+}
 setInterval(updateClock, 1000); updateClock(); initApp();
 </script>
 </body>
