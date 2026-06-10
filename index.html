@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Plan vs Actual PRO</title>
+    <title>JAPAN MC - Production Timeline PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     <style>
@@ -15,32 +15,31 @@
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* MÀU NỀN CỘT THỨ 7 / CN */
+        /* MÀU NỀN CỘT THỨ 7 / CN / HÔM NAY */
         .sat-day { background-color: #f0f7ff !important; } 
         .sun-day { background-color: #fff5f5 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
+        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
+        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
 
         /* THANH CÔNG VIỆC */
         .fc-event { border: none !important; margin-bottom: 1px !important; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
-        
-        /* THANH THỰC TẾ (実績) - CHỮ ĐEN */
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
-        .actual-event .fc-event-time, .actual-event .fc-event-title { color: #000000 !important; text-shadow: none !important; font-size: 10px !important; }
+        .actual-event .fc-event-time, .actual-event .fc-event-title { color: #000 !important; text-shadow: none !important; font-size: 10px !important; }
 
-        /* THIẾT KẾ CỘT MÁY GIỐNG HÌNH VẼ */
+        /* --- THIẾT KẾ CỘT MÁY GIỐNG HÌNH VẼ --- */
         tr[data-resource-id$="_plan"] .fc-datagrid-cell-frame { border-bottom: none !important; }
-        tr[data-resource-id$="_act"] .fc-datagrid-cell-frame { border-top: none !important; }
-        .machine-label-text { font-weight: bold; font-size: 11px; padding: 5px; display: flex; align-items: center; }
-        .status-label-text { font-weight: bold; font-size: 10px; text-align: center; display: flex; align-items: center; justify-content: center; height: 100%; }
+        .machine-name-box { font-weight: bold; font-size: 11px; padding: 5px; text-align: left; display: flex; align-items: center; }
+        .status-box { font-weight: bold; font-size: 10px; text-align: center; display: flex; align-items: center; justify-content: center; height: 100%; }
 
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 <div class="header">
-    <div><span>DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span><button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button></div>
+    <div><span style="font-size: 13px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span><button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button></div>
     <div id="currentTime"></div>
 </div>
 <div class="content">
@@ -64,8 +63,7 @@ function stringToColor(str) {
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
-/* --- BỘ GIẢI MÃ NGÀY THÁNG SIÊU CẤP --- */
-function superSmartParse(dStr) {
+function smartParseDate(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return null;
     try {
         let parts = dStr.split(' ');
@@ -97,9 +95,9 @@ async function initApp() {
         let machineMap = {}, events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // Xử lý Kế hoạch
+        // Xử lý Kế hoạch (Dòng trên)
         dataPlan.forEach(item => {
-            const m = item["Ten_May"], j = item["Ma_Hang"], s = superSmartParse(item["Ngay_Bat_Dau"]), e = superSmartParse(item["Ngay_Ket_Thuc"]);
+            const m = item["Ten_May"], j = item["Ma_Hang"], s = smartParseDate(item["Ngay_Bat_Dau"]), e = smartParseDate(item["Ngay_Ket_Thuc"]);
             if (!m || !j || !s) return;
             machineMap[m] = m;
             const status = (item["Status"] || "").toUpperCase();
@@ -108,9 +106,9 @@ async function initApp() {
             events.push({ resourceId: m + "_plan", title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: e || s, backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "N/A" } });
         });
 
-        // Xử lý Thực tế
+        // Xử lý Thực tế (Dòng dưới)
         dataActual.forEach(item => {
-            const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = superSmartParse(item["thoi_diem_bat_dau"]), e = superSmartParse(item["thoi_diem_hoan_thanh"]);
+            const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
             machineMap[m] = m;
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
@@ -131,12 +129,12 @@ async function initApp() {
             locale: 'ja', height: '100%', resourceAreaWidth: '240px',
             nowIndicator: true, slotMinWidth: 35,
             resourceColumns: [
-                { headerContent: 'MACHINE', width: '75%', render: function(arg) { 
+                { headerContent: 'MACHINE', width: '70%', render: function(arg) { 
                     let div = document.createElement('div'); div.className = 'machine-label-cell';
                     if (arg.resource.extendedProps.isTop) { div.innerText = arg.resource.extendedProps.mName; div.style.color = stringToColor(arg.resource.extendedProps.mName); }
                     return { domNodes: [div] }; 
                 }},
-                { headerContent: 'STATUS', width: '25%', render: function(arg) {
+                { headerContent: 'STATUS', width: '30%', render: function(arg) {
                     let div = document.createElement('div'); div.className = 'status-label-cell';
                     div.innerText = arg.resource.extendedProps.sName;
                     div.style.color = arg.resource.extendedProps.isTop ? '#16a34a' : '#666';
