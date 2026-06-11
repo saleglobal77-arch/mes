@@ -14,19 +14,27 @@
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
-        .sat-day { background-color: #f0f7ff !important; } .sun-day { background-color: #fff5f5 !important; } 
-        .past-day { background-color: #fcf9e8 !important; } .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
+
+        /* MÀU CỘT THỨ 7 / CN / TODAY */
+        .sat-day { background-color: #f0f7ff !important; } 
+        .sun-day { background-color: #fff5f5 !important; } 
+        .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
         .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
         .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
 
-        .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
+        /* THANH CÔNG VIỆC */
+        .fc-event { border: none !important; margin-bottom: 1px !important; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
         .actual-event .fc-event-time, .actual-event .fc-event-title { color: #000 !important; text-shadow: none !important; font-size: 10px !important; }
 
-        .fc-datagrid-cell-main { font-weight: bold; font-size: 11px; }
+        /* CỘT TRÁI CHIA 2 DÒNG THEO HÌNH VẼ */
+        tr[data-resource-id$="_plan"] .fc-datagrid-cell-frame { border-bottom: none !important; }
+        tr[data-resource-id$="_act"] .fc-datagrid-cell-frame { border-top: none !important; }
+        .machine-name-cell { font-weight: bold; font-size: 11px; padding: 5px; display: flex; align-items: center; }
+        .status-label-cell { font-weight: bold; font-size: 10px; text-align: center; display: flex; align-items: center; justify-content: center; height: 100%; }
+
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
@@ -44,6 +52,7 @@
     </div>
     <div id="calendar"></div>
 </div>
+
 <script>
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
@@ -55,6 +64,7 @@ function stringToColor(str) {
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
+/* --- BỘ GIẢI MÃ NGÀY GIỜ SIÊU MẠNH (Xử lý được cả 1970 và tỷ lệ giờ) --- */
 function superSmartParse(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return null;
     try {
@@ -67,7 +77,10 @@ function superSmartParse(dStr) {
         if (items[0].length === 4) { y = items[0]; m = items[1]; d = items[2]; } 
         else { y = items[2]; m = items[1]; d = items[0]; }
         if (y.length === 2) y = "20" + y;
-        if (parseInt(y) < 2000) return null; // Lọc bỏ năm 1970
+        
+        // Loại bỏ các hàng bị lỗi năm 1970
+        if (parseInt(y) < 2000) return null;
+        
         return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${timePart}`;
     } catch (e) { return null; }
 }
@@ -85,25 +98,33 @@ async function fetchCSV(url) {
 async function initApp() {
     try {
         const [dataPlan, dataActual] = await Promise.all([fetchCSV(urlPlan), fetchCSV(urlActual)]);
-        let machineSet = new Set(), events = [];
+        let machineMap = {}, events = [];
         let run=0, wait=0, delay=0, qty=0;
 
+        // Xử lý Kế hoạch
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = superSmartParse(item["Ngay_Bat_Dau"]), e = superSmartParse(item["Ngay_Ket_Thuc"]);
             if (!m || !j || !s || !e) return;
-            machineSet.add(m);
+            machineMap[m] = m;
             const status = (item["Status"] || "").toUpperCase();
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
-            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: e, backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "N/A" } });
+            events.push({ resourceId: m + "_plan", title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: e, backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "N/A" } });
         });
 
+        // Xử lý Thực tế
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = superSmartParse(item["thoi_diem_bat_dau"]), e = superSmartParse(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
-            machineSet.add(m);
+            machineMap[m] = m;
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
-            events.push({ resourceId: m, title: "ACTUAL: " + j + " (" + (step || "") + ")", start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "NV: " + (item["msnv"] || "") } });
+            events.push({ resourceId: m + "_act", title: j + " (" + (step || "") + ") (Actual)", start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "NV: " + (item["msnv"] || "") } });
+        });
+
+        let resources = [];
+        Object.keys(machineMap).sort().forEach(m => {
+            resources.push({ id: m + "_plan", mName: m, sName: '計画', isTop: true });
+            resources.push({ id: m + "_act", mName: '', sName: '実績', isTop: false });
         });
 
         const calendarEl = document.getElementById('calendar');
@@ -111,12 +132,24 @@ async function initApp() {
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
-            locale: 'ja', height: '100%', resourceAreaWidth: '160px',
+            locale: 'ja', height: '100%', resourceAreaWidth: '240px',
             nowIndicator: true, slotMinWidth: 45,
-            resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
+            resourceColumns: [
+                { headerContent: 'MACHINE', width: '75%', render: function(arg) {
+                    let div = document.createElement('div'); div.className = 'machine-label-cell';
+                    if (arg.resource.extendedProps.isTop) { div.innerText = arg.resource.extendedProps.mName; div.style.color = stringToColor(arg.resource.extendedProps.mName); }
+                    return { domNodes: [div] };
+                }},
+                { headerContent: 'STATUS', width: '25%', render: function(arg) {
+                    let div = document.createElement('div'); div.className = 'status-label-cell';
+                    div.innerText = arg.resource.extendedProps.sName;
+                    div.style.color = arg.resource.extendedProps.isTop ? '#16a34a' : '#666';
+                    return { domNodes: [div] };
+                }}
+            ],
+            resources: resources,
             events: events,
             slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
-            resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
             slotDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('sat-day');
@@ -125,9 +158,11 @@ async function initApp() {
             eventClick: function(info) { alert("【" + info.event.title + "】\nMemo: " + (info.event.extendedProps.memo || "-")); }
         });
         calendar.render();
-        document.getElementById('runCount').innerText = run; document.getElementById('waitCount').innerText = wait;
-        document.getElementById('delayCount').innerText = delay; document.getElementById('outputQty').innerText = qty;
-    } catch (e) { console.error(e); }
+        document.getElementById('runCount').innerText = run;
+        document.getElementById('waitCount').innerText = wait;
+        document.getElementById('delayCount').innerText = delay;
+        document.getElementById('outputQty').innerText = qty;
+    } catch (e) { console.error("Lỗi:", e); }
 }
 function updateClock() { const now = new Date(); document.getElementById('currentTime').innerText = now.toLocaleString('ja-JP'); }
 setInterval(updateClock, 1000); updateClock(); initApp();
