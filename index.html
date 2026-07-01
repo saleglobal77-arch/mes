@@ -3,59 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <title>JAPAN MC - Plan vs Actual PRO</title>
-    <!-- Tải thư viện lịch FullCalendar -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     
     <style>
-        /* --- GIAO DIỆN TỔNG THỂ --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
-        
-        /* --- THANH TIÊU ĐỀ & ĐỒNG HỒ (Màu xanh, giờ Neon rõ nét) --- */
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
-        #currentTime { 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 18px; font-weight: bold; color: #00ff00; 
-            background: #000000; padding: 4px 12px; border-radius: 6px; border: 2px solid #ffffff;
-            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); min-width: 180px; text-align: center;
-        }
-
+        #currentTime { font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold; color: #00ff00; background: #000; padding: 4px 12px; border-radius: 6px; border: 1px solid #fff; }
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* --- CHỈ SỐ KPI --- */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
-
-        /* --- KHUNG LỊCH --- */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
-        /* --- MÀU NỀN CỘT THỨ 7 / CN --- */
+
         .sat-day { background-color: #e6f7ff !important; } 
         .sun-day { background-color: #fff1f0 !important; } 
         .past-day { background-color: #fcf9e8 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        /* Màu chữ Thứ 7/CN trên tiêu đề */
         .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
         .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
 
-        /* --- THANH CÔNG VIỆC --- */
         .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
         .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
-        
-        /* THANH THỰC TẾ (Màu vàng - Chữ Đen rõ nét) */
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
-        .actual-event .fc-event-time { color: #000000 !important; font-weight: bold !important; padding-left: 3px; }
-        .actual-event .fc-event-title { color: #000000 !important; text-shadow: none !important; font-size: 10px !important; }
+        .actual-event .fc-event-time, .actual-event .fc-event-title { color: #000 !important; text-shadow: none !important; font-size: 10px !important; }
 
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        /* =========================================
-           THÊM MỚI: CSS CHO SHINKO RISUTO (BẢNG HIỆN TRẠNG)
-           ========================================= */
+        /* CSS CHO BẢNG SHINKO RISUTO */
         #statusTableContainer { display: none; background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: auto; }
         .shinko-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
         .shinko-table thead th { background: #16a34a; color: white; position: sticky; top: 0; padding: 10px 5px; font-size: 10px; z-index: 100; border: 1px solid #eee; }
@@ -70,7 +48,6 @@
 <div class="header">
     <div>
         <span style="font-size: 13px; font-weight: bold;">DYNAMO JAPAN MC</span>
-        <!-- THÊM MỚI: NÚT CHUYỂN TRANG -->
         <button class="btn-nav btn-active" id="btnTimeline" onclick="switchView('timeline')">📅 TIMELINE</button>
         <button class="btn-nav" id="btnStatus" onclick="switchView('status')">📋 SHINKO RISUTO (進行リスト)</button>
         <button class="btn-refresh" onclick="initApp()">🔄 REFRESH</button>
@@ -85,11 +62,7 @@
         <div class="kpi-box"><div>DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
         <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
-
-    <!-- View 1: Timeline (Giữ nguyên) -->
     <div id="calendar"></div>
-
-    <!-- THÊM MỚI: View 2: Bảng Shinko Risuto -->
     <div id="statusTableContainer">
         <table class="shinko-table">
             <thead id="tableHeader"></thead>
@@ -99,13 +72,11 @@
 </div>
 
 <script>
-/* --- LINK DỮ LIỆU --- */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
-/* THÊM MỚI: LINK TAB QL_MaHangChiTiet */
 const urlMaster = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=799317234';
 
-let calendarObj; // Thêm biến toàn cục để quản lý lịch
+let calendarObj; // Quản lý lịch toàn cục
 
 function stringToColor(str) {
     if(!str) return '#16a34a';
@@ -117,16 +88,15 @@ function stringToColor(str) {
 function smartParseDate(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return null;
     try {
-        let datePart = dStr.split(' ')[0];
-        let parts = datePart.includes('/') ? datePart.split('/') : datePart.split('-');
-        if (parts.length === 3) {
-            let y = parts[0].length === 4 ? parts[0] : parts[2];
-            let m = parts[0].length === 4 ? parts[1] : parts[1];
-            let d = parts[0].length === 4 ? parts[2] : parts[0];
-            if (y.length === 2) y = "20" + y;
-            return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-        }
-        return datePart;
+        let parts = dStr.split(' ');
+        let datePart = parts[0];
+        let timePart = parts[1] || "00:00:00";
+        let d = datePart.split(/[/-]/);
+        let y, m, day;
+        if (d[0].length === 4) { y = d[0]; m = d[1]; day = d[2]; } 
+        else { y = d[2]; m = d[1]; day = d[0]; }
+        if (y.length === 2) y = "20" + y;
+        return `${y}-${m.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`;
     } catch (e) { return null; }
 }
 
@@ -134,20 +104,19 @@ async function fetchCSV(url) {
     try {
         const response = await fetch(url + '&t=' + new Date().getTime());
         const text = await response.text();
-        const rows = text.split(/\r?\n/).filter(line => line.trim() !== "").map(row => 
-            row.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim())
+        const rows = text.split(/\r?\n/).filter(l => l.trim() !== "").map(r => 
+            r.split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim())
         );
         const headers = rows[0];
-        return rows.slice(1).map(row => {
-            let obj = {};
-            headers.forEach((h, i) => { if(h) obj[h] = row[i]; });
-            return obj;
+        return rows.slice(1).map(r => {
+            let o = {}; headers.forEach((h, i) => { if(h) o[h] = r[i]; });
+            return o;
         });
-    } catch (e) { console.error("Lỗi tải file:", e); return []; }
+    } catch (e) { return []; }
 }
 
 /* =========================================
-   THÊM MỚI: HÀM CHUYỂN ĐỔI VIEW (FIX LỖI TRẮNG TRANG)
+   PHẦN SỬA LỖI: CHUYỂN ĐỔI VIEW KHÔNG BỊ TRẮNG
    ========================================= */
 function switchView(view) {
     const calEl = document.getElementById('calendar');
@@ -160,7 +129,11 @@ function switchView(view) {
         kpiEl.style.display = 'flex';
         document.getElementById('btnTimeline').className = 'btn-nav btn-active';
         document.getElementById('btnStatus').className = 'btn-nav';
-        if (calendarObj) { calendarObj.updateSize(); } // Cực kỳ quan trọng để không bị trắng lịch
+        
+        // Đợi 10ms để trình duyệt render lại display: block rồi mới resize lịch
+        setTimeout(() => {
+            if (calendarObj) { calendarObj.updateSize(); }
+        }, 10);
     } else {
         calEl.style.display = 'none';
         tblEl.style.display = 'block';
@@ -172,17 +145,10 @@ function switchView(view) {
 
 async function initApp() {
     try {
-        /* THÊM MỚI: TẢI THÊM BẢNG MASTER */
-        const [dataPlan, dataActual, dataMaster] = await Promise.all([
-            fetchCSV(urlPlan), 
-            fetchCSV(urlActual),
-            fetchCSV(urlMaster)
-        ]);
-
+        const [dataPlan, dataActual, dataMaster] = await Promise.all([fetchCSV(urlPlan), fetchCSV(urlActual), fetchCSV(urlMaster)]);
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // 1. Xử lý Kế hoạch (Giữ nguyên)
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = smartParseDate(item["Ngay_Bat_Dau"]), e = smartParseDate(item["Ngay_Ket_Thuc"]);
             if (!m || !j || !s) return;
@@ -191,29 +157,26 @@ async function initApp() {
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
             let endD = new Date(e || s); endD.setDate(endD.getDate() + 1);
-            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "None" }, sortOrder: 1 });
+            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "" } });
         });
 
-        // 2. Xử lý Thực tế (Giữ nguyên)
         dataActual.forEach(item => {
-            const m = item["may_gia_cong"], j = item["ma_ban_ve"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
+            const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
             machineSet.add(m);
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
-            events.push({ resourceId: m, title: "ACTUAL: " + j, start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" }, sortOrder: 2 });
+            events.push({ resourceId: m, title: "ACTUAL: " + j + " (" + (step || "") + ")", start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" } });
         });
 
         const calendarEl = document.getElementById('calendar');
         calendarEl.innerHTML = '';
         calendarObj = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-            initialView: 'resourceTimelineMonth',
-            locale: 'ja', height: '100%', resourceAreaWidth: '130px', resourceAreaHeaderContent: 'MACHINE',
-            slotMinWidth: 35, nowIndicator: true, eventOrder: 'sortOrder',
-            slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
+            initialView: 'resourceTimelineMonth', locale: 'ja', height: '100%', resourceAreaWidth: '130px',
+            nowIndicator: true, slotMinWidth: 35,
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
-            resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
+            slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
             slotDidMount: function(arg) {
                 const day = arg.date.getDay();
                 if (day === 6) arg.el.classList.add('sat-day');
@@ -223,42 +186,16 @@ async function initApp() {
         });
         calendarObj.render();
 
-        /* =========================================
-           THÊM MỚI: XỬ LÝ BẢNG SHINKO RISUTO (ĐỦ 33 CỘT)
-           ========================================= */
-        const tableCols = [
-            "id_ma_hang", "ma_ban_ve", "ngay_dat_hang", "han_giao_khach", "so_luong", "PhanXuong_SX", 
-            "ngaycd_ana", "ngaycd_arai", "ngaycd_QT", "ngaycd_mc1", "ngaycd_mc2", "ngaycd_mc3", 
-            "ngaycd_mc4", "ngaycd_mc5", "ngaycd_mc6", "ngaycd_mc7", "ngaycd_edm", "ngaycd_wire", 
-            "ngaycd_Coating", "ngaycd_Kensa", "ngay_kensa", "ngay_coating", "vat_lieu_bv", "do_cung", "loai_xlbm",
-            "barcode", "ma_khach_hang", "ma_po_khach", "part_Name", "part_no", "ghi_chu1", "ghi_chu2", "ghi_chu3"
-        ];
-        
-        // Tạo tiêu đề bảng (Upper case cho đẹp)
-        document.getElementById('tableHeader').innerHTML = "<tr>" + 
-            tableCols.map(c => `<th>${c.toUpperCase().replace('NGAYCD_','')}</th>`).join('') + 
-        "</tr>";
-        
-        // Tạo nội dung bảng (Bóc tách ngày tháng cho sạch)
-        document.getElementById('tableBody').innerHTML = dataMaster.map(row => 
-            "<tr>" + tableCols.map(c => {
-                let val = row[c] || "";
-                if (c.includes("ngay") && val.includes("/")) { val = val.split(' ')[0]; }
-                return `<td>${val}</td>`;
-            }).join('') + "</tr>"
-        ).join('');
+        const tableCols = ["id_ma_hang", "ma_ban_ve", "ngay_dat_hang", "han_giao_khach", "so_luong", "PhanXuong_SX", "ngaycd_ana", "ngaycd_arai", "ngaycd_QT", "ngaycd_mc1", "ngaycd_mc2", "ngaycd_mc3", "ngaycd_mc4", "ngaycd_mc5", "ngaycd_mc6", "ngaycd_mc7", "ngaycd_edm", "ngaycd_wire", "ngaycd_Coating", "ngaycd_Kensa", "ngay_kensa", "ngay_coating", "vat_lieu_bv", "do_cung", "loai_xlbm", "barcode", "ma_khach_hang", "ma_po_khach", "part_Name", "part_no", "ghi_chu1", "ghi_chu2", "ghi_chu3"];
+        document.getElementById('tableHeader').innerHTML = "<tr>" + tableCols.map(c => `<th>${c.toUpperCase().replace('NGAYCD_','')}</th>`).join('') + "</tr>";
+        document.getElementById('tableBody').innerHTML = dataMaster.map(row => "<tr>" + tableCols.map(c => `<td>${(row[c] || "").split(' ')[0]}</td>`).join('') + "</tr>").join('');
 
-        document.getElementById('runCount').innerText = run;
-        document.getElementById('waitCount').innerText = wait;
-        document.getElementById('delayCount').innerText = delay;
-        document.getElementById('outputQty').innerText = qty;
+        document.getElementById('runCount').innerText = run; document.getElementById('waitCount').innerText = wait;
+        document.getElementById('delayCount').innerText = delay; document.getElementById('outputQty').innerText = qty;
     } catch (e) { console.error(e); }
 }
 
-function updateClock() {
-    const now = new Date();
-    document.getElementById('currentTime').innerText = now.toLocaleString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
+function updateClock() { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }
 setInterval(updateClock, 1000); updateClock(); initApp();
 </script>
 </body>
