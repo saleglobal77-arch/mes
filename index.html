@@ -2,88 +2,100 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Plan vs Actual PRO</title>
-    <!-- Tải thư viện lịch FullCalendar -->
+    <title>JAPAN MC - Production Control PRO</title>
+    <!-- Tải thư viện FullCalendar -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     
     <style>
         /* --- GIAO DIỆN TỔNG THỂ --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
-        
-        /* --- THANH TIÊU ĐỀ & ĐỒNG HỒ (Màu xanh, giờ Neon rõ nét) --- */
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
+        
         #currentTime { 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 18px; font-weight: bold; color: #00ff00; 
-            background: #000000; padding: 4px 12px; border-radius: 6px; border: 2px solid #ffffff;
-            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); min-width: 180px; text-align: center;
+            font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; color: #00ff00; 
+            background: #000; padding: 4px 10px; border-radius: 4px; border: 1px solid #fff;
         }
 
         .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* --- CHỈ SỐ KPI --- */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
 
-        /* --- KHUNG LỊCH --- */
-        #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
-        /* --- MÀU NỀN CỘT THỨ 7 / CN --- */
-        .sat-day { background-color: #e6f7ff !important; } 
-        .sun-day { background-color: #fff1f0 !important; } 
-        .past-day { background-color: #fcf9e8 !important; } 
+        /* --- CÁC NÚT ĐIỀU KHIỂN --- */
+        .btn-nav { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 5px; }
+        .btn-nav:hover { background: #f0f0f0; }
+        .btn-active { background: #ffff00 !important; color: #000 !important; }
+
+        /* --- KHUNG HIỂN THỊ --- */
+        #calendar, #statusTableContainer { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: auto; }
+        #statusTableContainer { display: none; padding: 10px; }
+
+        /* --- BẢNG HIỆN TRẠNG HÀNG --- */
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th { background: #16a34a; color: white; position: sticky; top: 0; padding: 8px; font-size: 10px; }
+        td { border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: center; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+
+        /* --- MÀU LỊCH TRÌNH --- */
+        .sat-day { background-color: #f0f7ff !important; } 
+        .sun-day { background-color: #fff5f5 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
-        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
-
-        /* Màu chữ Thứ 7/CN trên tiêu đề */
-        /*.fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; } */
-        /*.fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; } */
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
-
-
-
-
-
-        /* --- THANH CÔNG VIỆC --- */
-        .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
-        .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
-        
-        /* THANH THỰC TẾ (Màu vàng - Chữ Đen rõ nét) */
+        .fc-event { border: none !important; margin-bottom: 1px !important; }
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
-        .actual-event .fc-event-time { color: #000000 !important; font-weight: bold !important; padding-left: 3px; }
-        .actual-event .fc-event-title { color: #000000 !important; text-shadow: none !important; font-size: 10px !important; }
-
-        .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
-        .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .actual-event .fc-event-title { color: #000 !important; text-shadow: none !important; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <span style="font-size: 13px;">DYNAMO JAPAN MC PRODUCTION MANAGEMENT</span>
-        <button class="btn-refresh" onclick="initApp()">🔄 REFRESH (更新)</button>
+        <span style="font-size: 13px; font-weight: bold;">DYNAMO JAPAN MC</span>
+        <button class="btn-nav btn-active" id="btnTimeline" onclick="switchView('timeline')">📅 TIMELINE</button>
+        <button class="btn-nav" id="btnStatus" onclick="switchView('status')">📋 SHINKO RISUTO (進行リスト)</button>
+        <button class="btn-nav" onclick="initApp()">🔄 REFRESH</button>
     </div>
     <div id="currentTime"></div>
 </div>
 
 <div class="content">
-    <div class="kpi-row">
+    <div id="kpiRow" class="kpi-row">
         <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
         <div class="kpi-box"><div>WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
         <div class="kpi-box"><div>DELAY</div><div class="kpi-value" id="delayCount">0</div></div>
         <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
+
+    <!-- View 1: Lịch trình -->
     <div id="calendar"></div>
+
+    <!-- View 2: Bảng hiện trạng hàng -->
+    <div id="statusTableContainer">
+        <table id="itemTable">
+            <thead>
+                <tr>
+                    <th>ID Mã Hàng</th>
+                    <th>Mã Bản Vẽ</th>
+                    <th>Ngày Đặt</th>
+                    <th>Hạn Giao</th>
+                    <th>Part No</th>
+                    <th>Part Name</th>
+                    <th>Số Lượng</th>
+                    <th>Phân Xưởng</th>
+                    <th>Loại Hàng</th>
+                </tr>
+            </thead>
+            <tbody id="itemTableBody"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
 /* --- LINK DỮ LIỆU --- */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
+const urlMaster = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=799317234';
 
 function stringToColor(str) {
     if(!str) return '#16a34a';
@@ -92,46 +104,64 @@ function stringToColor(str) {
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
-/* --- HÀM GIẢI MÃ NGÀY THÁNG THÔNG MINH (Xử lý lỗi năm 26 và định dạng VN/JP) --- */
 function smartParseDate(dStr) {
-    if (!dStr || dStr.trim() === "" || dStr === "null") return null;
-    try {
-        let datePart = dStr.split(' ')[0]; // Lấy phần ngày, bỏ phần giờ 0:00
-        let parts = datePart.includes('/') ? datePart.split('/') : datePart.split('-');
-        
-        if (parts.length === 3) {
-            let y = parts[0].length === 4 ? parts[0] : parts[2]; // Tìm năm
-            let m = parts[0].length === 4 ? parts[1] : parts[1]; // Tìm tháng
-            let d = parts[0].length === 4 ? parts[2] : parts[0]; // Tìm ngày
-            
-            if (y.length === 2) y = "20" + y; // Sửa lỗi 26 -> 2026
-            return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-        }
-        return datePart;
-    } catch (e) { return null; }
+    if (!dStr || dStr.trim() === "" || dStr === "null") return "";
+    let cleanStr = dStr.split(' ')[0];
+    let parts = cleanStr.split('/');
+    if (parts.length === 3) {
+        let y = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+        return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return cleanStr; 
 }
 
-/* --- HÀM TẢI CSV AN TOÀN --- */
 async function fetchCSV(url) {
     try {
         const response = await fetch(url + '&t=' + new Date().getTime());
         const text = await response.text();
-        const rows = text.split(/\r?\n/).filter(line => line.trim() !== "").map(row => 
-            row.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim())
+        const rows = text.split(/\r?\n/).filter(l => l.trim() !== "").map(r => 
+            r.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim())
         );
         const headers = rows[0];
-        return rows.slice(1).map(row => {
-            let obj = {};
-            headers.forEach((h, i) => { if(h) obj[h] = row[i]; });
-            return obj;
+        return rows.slice(1).map(r => {
+            let o = {};
+            headers.forEach((h, i) => { if(h) o[h] = r[i]; });
+            return o;
         });
-    } catch (e) { console.error("Lỗi tải file:", e); return []; }
+    } catch (e) { return []; }
 }
 
-/* --- KHỞI TẠO --- */
+/* --- CHUYỂN ĐỔI GIAO DIỆN --- */
+function switchView(view) {
+    const cal = document.getElementById('calendar');
+    const tbl = document.getElementById('statusTableContainer');
+    const kpi = document.getElementById('kpiRow');
+    const btnT = document.getElementById('btnTimeline');
+    const btnS = document.getElementById('btnStatus');
+
+    if (view === 'timeline') {
+        cal.style.display = 'block';
+        tbl.style.display = 'none';
+        kpi.style.display = 'flex';
+        btnT.classList.add('btn-active');
+        btnS.classList.remove('btn-active');
+    } else {
+        cal.style.display = 'none';
+        tbl.style.display = 'block';
+        kpi.style.display = 'none';
+        btnS.classList.add('btn-active');
+        btnT.classList.remove('btn-active');
+    }
+}
+
 async function initApp() {
     try {
-        const [dataPlan, dataActual] = await Promise.all([fetchCSV(urlPlan), fetchCSV(urlActual)]);
+        const [dataPlan, dataActual, dataMaster] = await Promise.all([
+            fetchCSV(urlPlan),
+            fetchCSV(urlActual),
+            fetchCSV(urlMaster)
+        ]);
+
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
@@ -143,16 +173,8 @@ async function initApp() {
             const status = (item["Status"] || "").toUpperCase();
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
-
-            let endD = new Date(e || s);
-            endD.setDate(endD.getDate() + 1);
-
-            events.push({
-                resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")",
-                start: s, end: endD.toISOString().split('T')[0],
-                backgroundColor: stringToColor(j), borderColor: stringToColor(j),
-                extendedProps: { memo: item["Memo"] || "None" }, sortOrder: 1
-            });
+            let endD = new Date(e || s); endD.setDate(endD.getDate() + 1);
+            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "N/A" } });
         });
 
         // 2. Xử lý Thực tế
@@ -160,15 +182,27 @@ async function initApp() {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
             machineSet.add(m);
+            let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
+            events.push({ resourceId: m, title: "ACTUAL: " + j, start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" } });
+        });
 
-            let endTime = e;
-            if (!endTime || endTime === "" || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
-
-            events.push({
-                resourceId: m, title: "ACTUAL: " + j + " (" + (item["thu_tu_gc"] || "") + ")",
-                start: s, end: endTime, className: 'actual-event',
-                extendedProps: { memo: "NV: " + (item["msnv"] || "") }, sortOrder: 2
-            });
+        // 3. XỬ LÝ BẢNG HIỆN TRẠNG HÀNG (Master Data)
+        const tbody = document.getElementById('itemTableBody');
+        tbody.innerHTML = '';
+        dataMaster.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row["id_ma_hang"] || ""}</td>
+                <td>${row["ma_ban_ve"] || ""}</td>
+                <td>${row["ngay_dat_hang"] || ""}</td>
+                <td>${row["han_giao_khach"] || ""}</td>
+                <td>${row["part_no"] || ""}</td>
+                <td>${row["part_Name"] || ""}</td>
+                <td>${row["so_luong"] || ""}</td>
+                <td>${row["PhanXuong_SX"] || ""}</td>
+                <td>${row["loai_hang"] || ""}</td>
+            `;
+            tbody.appendChild(tr);
         });
 
         const calendarEl = document.getElementById('calendar');
@@ -176,9 +210,8 @@ async function initApp() {
         const calendar = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth',
-            locale: 'ja', height: '100%', resourceAreaWidth: '130px', resourceAreaHeaderContent: 'MACHINE',
-            slotMinWidth: 35, nowIndicator: true, eventOrder: 'sortOrder',
-            slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
+            locale: 'ja', height: '100%', resourceAreaWidth: '150px', resourceAreaHeaderContent: 'MACHINE',
+            slotMinWidth: 35, nowIndicator: true,
             resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
             events: events,
             resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
@@ -187,28 +220,16 @@ async function initApp() {
                 if (day === 6) arg.el.classList.add('sat-day');
                 if (day === 0) arg.el.classList.add('sun-day');
             },
-            slotLabelDidMount: function(arg) {
-                const day = arg.date.getDay();
-                if (day === 6) arg.el.classList.add('fc-timeline-slot-label-sat');
-                if (day === 0) arg.el.classList.add('fc-timeline-slot-label-sun');
-            },
-            eventClick: function(info) {
-                alert("【" + info.event.resourceId + "】\nContent: " + info.event.title + "\nMemo: " + info.event.extendedProps.memo);
-            }
+            eventClick: function(info) { alert("【" + info.event.resourceId + "】\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
         });
         calendar.render();
-        document.getElementById('runCount').innerText = run;
-        document.getElementById('waitCount').innerText = wait;
-        document.getElementById('delayCount').innerText = delay;
-        document.getElementById('outputQty').innerText = qty;
+        document.getElementById('runCount').innerText = run; document.getElementById('waitCount').innerText = wait;
+        document.getElementById('delayCount').innerText = delay; document.getElementById('outputQty').innerText = qty;
     } catch (e) { console.error(e); }
 }
 
-function updateClock() {
-    const now = new Date();
-    document.getElementById('currentTime').innerText = now.toLocaleString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-setInterval(updateClock, 1000); updateClock(); initApp();
+setInterval(() => { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }, 1000);
+initApp();
 </script>
 </body>
 </html>
