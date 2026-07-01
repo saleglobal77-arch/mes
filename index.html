@@ -2,49 +2,46 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Production Control PRO</title>
-    <!-- Tải thư viện FullCalendar -->
+    <title>JAPAN MC - Plan vs Actual Control PRO</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     
     <style>
-        /* --- GIAO DIỆN TỔNG THỂ --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
-        .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         
         #currentTime { 
             font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; color: #00ff00; 
             background: #000; padding: 4px 10px; border-radius: 4px; border: 1px solid #fff;
         }
 
-        .content { padding: 8px; height: 93vh; display: flex; flex-direction: column; overflow: hidden; }
+        .content { padding: 8px; height: 92vh; display: flex; flex-direction: column; }
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
 
-        /* --- CÁC NÚT ĐIỀU KHIỂN --- */
+        /* NÚT ĐIỀU KHIỂN */
         .btn-nav { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 5px; }
-        .btn-nav:hover { background: #f0f0f0; }
-        .btn-active { background: #ffff00 !important; color: #000 !important; }
+        .btn-active { background: #ffff00 !important; color: #000 !important; border: 1px solid #000 !important; }
 
-        /* --- KHUNG HIỂN THỊ --- */
-        #calendar, #statusTableContainer { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: auto; }
-        #statusTableContainer { display: none; padding: 10px; }
+        /* KHUNG HIỂN THỊ */
+        #calendar, #statusTableContainer { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; position: relative; }
+        #statusTableContainer { display: none; overflow: auto; }
 
-        /* --- BẢNG HIỆN TRẠNG HÀNG --- */
+        /* BẢNG DỮ LIỆU TỪ HÌNH 3, 4, 5 */
         table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-        th { background: #16a34a; color: white; position: sticky; top: 0; padding: 8px; font-size: 10px; }
-        td { border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: center; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        thead th { background: #16a34a; color: white; position: sticky; top: 0; padding: 10px 5px; font-size: 10px; z-index: 10; border: 1px solid #eee; }
+        tbody td { border: 1px solid #ddd; padding: 6px 4px; font-size: 10px; text-align: center; }
+        tr:nth-child(even) { background-color: #fafafa; }
         tr:hover { background-color: #f1f1f1; }
 
-        /* --- MÀU LỊCH TRÌNH --- */
+        /* MÀU LỊCH */
         .sat-day { background-color: #f0f7ff !important; } 
         .sun-day { background-color: #fff5f5 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-event { border: none !important; margin-bottom: 1px !important; }
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
-        .actual-event .fc-event-title { color: #000 !important; text-shadow: none !important; }
+        .actual-event .fc-event-title, .actual-event .fc-event-time { color: #000 !important; text-shadow: none !important; }
     </style>
 </head>
 <body>
@@ -67,26 +64,14 @@
         <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
 
-    <!-- View 1: Lịch trình -->
+    <!-- Lịch trình -->
     <div id="calendar"></div>
 
-    <!-- View 2: Bảng hiện trạng hàng -->
+    <!-- Bảng Hiện trạng Hàng (Shinko Risuto) -->
     <div id="statusTableContainer">
-        <table id="itemTable">
-            <thead>
-                <tr>
-                    <th>ID Mã Hàng</th>
-                    <th>Mã Bản Vẽ</th>
-                    <th>Ngày Đặt</th>
-                    <th>Hạn Giao</th>
-                    <th>Part No</th>
-                    <th>Part Name</th>
-                    <th>Số Lượng</th>
-                    <th>Phân Xưởng</th>
-                    <th>Loại Hàng</th>
-                </tr>
-            </thead>
-            <tbody id="itemTableBody"></tbody>
+        <table>
+            <thead id="tableHeader"></thead>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 </div>
@@ -107,9 +92,10 @@ function stringToColor(str) {
 function smartParseDate(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return "";
     let cleanStr = dStr.split(' ')[0];
-    let parts = cleanStr.split('/');
+    let parts = cleanStr.split(/[/-]/);
     if (parts.length === 3) {
         let y = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+        if (parts[0].length === 4) return cleanStr; // YYYY-MM-DD
         return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
     }
     return cleanStr; 
@@ -131,41 +117,22 @@ async function fetchCSV(url) {
     } catch (e) { return []; }
 }
 
-/* --- CHUYỂN ĐỔI GIAO DIỆN --- */
 function switchView(view) {
-    const cal = document.getElementById('calendar');
-    const tbl = document.getElementById('statusTableContainer');
-    const kpi = document.getElementById('kpiRow');
-    const btnT = document.getElementById('btnTimeline');
-    const btnS = document.getElementById('btnStatus');
-
-    if (view === 'timeline') {
-        cal.style.display = 'block';
-        tbl.style.display = 'none';
-        kpi.style.display = 'flex';
-        btnT.classList.add('btn-active');
-        btnS.classList.remove('btn-active');
-    } else {
-        cal.style.display = 'none';
-        tbl.style.display = 'block';
-        kpi.style.display = 'none';
-        btnS.classList.add('btn-active');
-        btnT.classList.remove('btn-active');
-    }
+    document.getElementById('calendar').style.display = (view === 'timeline') ? 'block' : 'none';
+    document.getElementById('statusTableContainer').style.display = (view === 'status') ? 'block' : 'none';
+    document.getElementById('kpiRow').style.display = (view === 'timeline') ? 'flex' : 'none';
+    document.getElementById('btnTimeline').className = 'btn-nav' + (view === 'timeline' ? ' btn-active' : '');
+    document.getElementById('btnStatus').className = 'btn-nav' + (view === 'status' ? ' btn-active' : '');
 }
 
 async function initApp() {
     try {
-        const [dataPlan, dataActual, dataMaster] = await Promise.all([
-            fetchCSV(urlPlan),
-            fetchCSV(urlActual),
-            fetchCSV(urlMaster)
-        ]);
+        const [dataPlan, dataActual, dataMaster] = await Promise.all([fetchCSV(urlPlan), fetchCSV(urlActual), fetchCSV(urlMaster)]);
 
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // 1. Xử lý Kế hoạch
+        // 1. KẾ HOẠCH
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = smartParseDate(item["Ngay_Bat_Dau"]), e = smartParseDate(item["Ngay_Ket_Thuc"]);
             if (!m || !j || !s) return;
@@ -174,36 +141,32 @@ async function initApp() {
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
             let endD = new Date(e || s); endD.setDate(endD.getDate() + 1);
-            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "N/A" } });
+            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "" } });
         });
 
-        // 2. Xử lý Thực tế
+        // 2. THỰC TẾ
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return;
             machineSet.add(m);
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
-            events.push({ resourceId: m, title: "ACTUAL: " + j, start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" } });
+            events.push({ resourceId: m, title: "ACTUAL: " + j, start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "NV: " + (item["msnv"] || "") } });
         });
 
-        // 3. XỬ LÝ BẢNG HIỆN TRẠNG HÀNG (Master Data)
-        const tbody = document.getElementById('itemTableBody');
-        tbody.innerHTML = '';
-        dataMaster.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${row["id_ma_hang"] || ""}</td>
-                <td>${row["ma_ban_ve"] || ""}</td>
-                <td>${row["ngay_dat_hang"] || ""}</td>
-                <td>${row["han_giao_khach"] || ""}</td>
-                <td>${row["part_no"] || ""}</td>
-                <td>${row["part_Name"] || ""}</td>
-                <td>${row["so_luong"] || ""}</td>
-                <td>${row["PhanXuong_SX"] || ""}</td>
-                <td>${row["loai_hang"] || ""}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+        // 3. BẢNG HIỆN TRẠNG (Master) - Cập nhật cột từ Hình 3, 4, 5
+        const cols = [
+            "id_ma_hang", "ma_ban_ve", "ngay_dat_hang", "han_giao_khach", "so_luong", "PhanXuong_SX", 
+            "ngaycd_ana", "ngaycd_arai", "ngaycd_QT", "ngaycd_mc1", "ngaycd_mc2", "ngaycd_mc3", 
+            "ngaycd_mc4", "ngaycd_mc5", "ngaycd_mc6", "ngaycd_mc7", "ngaycd_edm", "ngaycd_wire", 
+            "ngaycd_Coating", "ngaycd_Kensa", "ngay_kensa", "ngay_coating", "vat_lieu_bv", 
+            "do_cung", "loai_xlbm", "barcode", "ma_khach_hang", "ma_po_khach", "part_Name", 
+            "part_no", "ghi_chu1", "ghi_chu2", "ghi_chu3"
+        ];
+        
+        document.getElementById('tableHeader').innerHTML = "<tr>" + cols.map(c => `<th>${c.toUpperCase().replace('NGAYCD_','')}</th>`).join('') + "</tr>";
+        document.getElementById('tableBody').innerHTML = dataMaster.map(row => 
+            "<tr>" + cols.map(c => `<td>${row[c] || ""}</td>`).join('') + "</tr>"
+        ).join('');
 
         const calendarEl = document.getElementById('calendar');
         calendarEl.innerHTML = '';
@@ -220,7 +183,7 @@ async function initApp() {
                 if (day === 6) arg.el.classList.add('sat-day');
                 if (day === 0) arg.el.classList.add('sun-day');
             },
-            eventClick: function(info) { alert("【" + info.event.resourceId + "】\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
+            eventClick: function(info) { alert("Máy: " + info.event.resourceId + "\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
         });
         calendar.render();
         document.getElementById('runCount').innerText = run; document.getElementById('waitCount').innerText = wait;
