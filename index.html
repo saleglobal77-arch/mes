@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
     
     <style>
-        /* --- GIAO DIỆN TỔNG THỂ --- */
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; }
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         #currentTime { font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; color: #00ff00; background: #000; padding: 4px 10px; border-radius: 4px; border: 1px solid #fff; }
@@ -18,19 +17,15 @@
         .btn-nav { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 5px; }
         .btn-active { background: #ffff00 !important; color: #000 !important; border: 1px solid #000 !important; }
         #calendar, #statusTableContainer { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; position: relative; }
-        
-        /* MÀU NỀN CỘT */
-        .sat-day { background-color: #e6f7ff !important; } 
-        .sun-day { background-color: #fff1f0 !important; } 
-        .past-day { background-color: #fcf9e8 !important; } 
+
+        /* MÀU TIMELINE */
+        .sat-day { background-color: #f0f7ff !important; } 
+        .sun-day { background-color: #fff5f5 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
-        .fc-event { border: none !important; margin-bottom: 1px !important; cursor: pointer; }
-        .fc-event-title { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-weight: bold !important; padding-left: 4px; }
+        .fc-event { border: none !important; margin-bottom: 1px !important; }
         .actual-event { background-color: #fff9c4 !important; border: 1px solid #fbc02d !important; height: 18px !important; }
-        .actual-event .fc-event-time, .actual-event .fc-event-title { color: #000 !important; text-shadow: none !important; }
+        .actual-event .fc-event-title, .actual-event .fc-event-time { color: #000 !important; text-shadow: none !important; }
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
 
         /* =========================================
@@ -48,7 +43,6 @@
 <div class="header">
     <div>
         <span style="font-size: 13px; font-weight: bold;">DYNAMO JAPAN MC</span>
-        <!-- PHẦN THÊM MỚI: NÚT ĐIỀU HƯỚNG -->
         <button class="btn-nav btn-active" id="btnTimeline" onclick="switchView('timeline')">📅 TIMELINE</button>
         <button class="btn-nav" id="btnStatus" onclick="switchView('status')">📋 SHINKO RISUTO (進行リスト)</button>
         <button class="btn-nav" onclick="initApp()">🔄 REFRESH</button>
@@ -64,10 +58,8 @@
         <div class="kpi-box"><div>OUTPUT</div><div class="kpi-value" id="outputQty">0</div></div>
     </div>
 
-    <!-- KHUNG TIMELINE (GIỮ NGUYÊN) -->
     <div id="calendar"></div>
 
-    <!-- PHẦN THÊM MỚI: KHUNG BẢNG SHINKO RISUTO -->
     <div id="statusTableContainer">
         <table class="shinko-table">
             <thead id="tableHeader"></thead>
@@ -78,13 +70,13 @@
 
 <script>
 /* =========================================
-   PHẦN THÊM MỚI: LINK DỮ LIỆU ĐÃ TÁCH BIỆT
+   THÀNH PHẦN 1: CẤU HÌNH LINK VÀ DỮ LIỆU
    ========================================= */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 const urlMaster = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=799317234';
 
-let calendarObj; 
+let calendarObj;
 
 function stringToColor(str) {
     if(!str) return '#16a34a';
@@ -111,19 +103,19 @@ async function fetchCSV(url) {
     try {
         const response = await fetch(url + '&t=' + new Date().getTime());
         const text = await response.text();
-        const rows = text.split(/\r?\n/).filter(line => line.trim() !== "").map(row => 
-            row.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim())
+        const rows = text.split(/\r?\n/).filter(l => l.trim() !== "").map(r => 
+            r.split(',').map(cell => cell.replace(/^"(.*)"$/, '$1').trim())
         );
         const headers = rows[0];
         return rows.slice(1).map(r => {
             let o = {}; headers.forEach((h, i) => { if(h) o[h] = r[i]; });
             return o;
         });
-    } catch (e) { console.error("CSV Load Error:", e); return []; }
+    } catch (e) { return []; }
 }
 
 /* =========================================
-   PHẦN THÊM MỚI: HÀM CHUYỂN ĐỔI (FIX TRẮNG TRANG)
+   THÀNH PHẦN 2: XỬ LÝ CHUYỂN ĐỔI TAB (FIX LỖI TRẮNG)
    ========================================= */
 function switchView(view) {
     const calEl = document.getElementById('calendar');
@@ -136,8 +128,14 @@ function switchView(view) {
         kpiEl.style.display = 'flex';
         document.getElementById('btnTimeline').className = 'btn-nav btn-active';
         document.getElementById('btnStatus').className = 'btn-nav';
-        // Ép lịch vẽ lại kích thước để tránh trắng trang
-        setTimeout(() => { if (calendarObj) { calendarObj.updateSize(); } }, 50);
+        
+        // Đợi 50ms để trình duyệt hiện khung hình rồi mới resize lịch
+        setTimeout(() => {
+            if (calendarObj) {
+                calendarObj.render(); 
+                calendarObj.updateSize();
+            }
+        }, 50);
     } else {
         calEl.style.display = 'none';
         tblEl.style.display = 'block';
@@ -147,22 +145,19 @@ function switchView(view) {
     }
 }
 
+/* =========================================
+   THÀNH PHẦN 3: KHỞI TẠO ỨNG DỤNG
+   ========================================= */
 async function initApp() {
     try {
-        const [dataPlan, dataActual, dataMaster] = await Promise.all([
-            fetchCSV(urlPlan), 
-            fetchCSV(urlActual),
-            fetchCSV(urlMaster)
-        ]);
-
+        const [dataPlan, dataActual, dataMaster] = await Promise.all([fetchCSV(urlPlan), fetchCSV(urlActual), fetchCSV(urlMaster)]);
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // Xử lý Timeline (Giữ nguyên logic của bạn)
+        // 1. XỬ LÝ TIMELINE (KẾ HOẠCH & THỰC TẾ)
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = smartParseDate(item["Ngay_Bat_Dau"]), e = smartParseDate(item["Ngay_Ket_Thuc"]);
-            if (!m || !j || !s) return;
-            machineSet.add(m);
+            if (!m || !j || !s) return; machineSet.add(m);
             const status = (item["Status"] || "").toUpperCase();
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
@@ -172,14 +167,31 @@ async function initApp() {
 
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
-            if (!m || !j || !s) return;
-            machineSet.add(m);
+            if (!m || !j || !s) return; machineSet.add(m);
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
-            events.push({ resourceId: m, title: "ACTUAL: " + j + " (" + (step || "") + ")", start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" } });
+            events.push({ resourceId: m, title: "ACTUAL: " + j, start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" } });
         });
 
+        const calendarEl = document.getElementById('calendar');
+        calendarEl.innerHTML = '';
+        calendarObj = new FullCalendar.Calendar(calendarEl, {
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            initialView: 'resourceTimelineMonth', locale: 'ja', height: '100%', resourceAreaWidth: '130px',
+            nowIndicator: true, slotMinWidth: 35,
+            resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
+            events: events,
+            slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
+            slotDidMount: function(arg) {
+                const day = arg.date.getDay();
+                if (day === 6) arg.el.classList.add('sat-day');
+                if (day === 0) arg.el.classList.add('sun-day');
+            },
+            eventClick: function(info) { alert("Máy: " + info.event.resourceId + "\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
+        });
+        calendarObj.render();
+
         // =========================================
-        // PHẦN THÊM MỚI: HIỂN THỊ BẢNG SHINKO RISUTO (ĐỦ 33 CỘT)
+        // PHẦN THÊM MỚI: XỬ LÝ BẢNG SHINKO RISUTO (ĐÚNG CỘT HÌNH 3,4,5)
         // =========================================
         const tableCols = [
             "id_ma_hang", "ma_ban_ve", "ngay_dat_hang", "han_giao_khach", "so_luong", "PhanXuong_SX", 
@@ -197,24 +209,6 @@ async function initApp() {
                 return `<td>${val}</td>`;
             }).join('') + "</tr>"
         ).join('');
-
-        const calendarEl = document.getElementById('calendar');
-        calendarEl.innerHTML = '';
-        calendarObj = new FullCalendar.Calendar(calendarEl, {
-            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-            initialView: 'resourceTimelineMonth', locale: 'ja', height: '100%', resourceAreaWidth: '130px',
-            nowIndicator: true, slotMinWidth: 35,
-            resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
-            events: events,
-            resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
-            slotDidMount: function(arg) {
-                const day = arg.date.getDay();
-                if (day === 6) arg.el.classList.add('sat-day');
-                if (day === 0) arg.el.classList.add('sun-day');
-            },
-            eventClick: function(info) { alert("【" + info.event.resourceId + "】\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
-        });
-        calendarObj.render();
 
         document.getElementById('runCount').innerText = run; document.getElementById('waitCount').innerText = wait;
         document.getElementById('delayCount').innerText = delay; document.getElementById('outputQty').innerText = qty;
