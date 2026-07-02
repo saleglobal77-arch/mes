@@ -227,11 +227,7 @@ async function initApp() {
                 alert("【" + info.event.resourceId + "】\nContent: " + info.event.title + "\nMemo: " + info.event.extendedProps.memo);
             }
         });
-        calendar.render();
-
-        // 1. PHAN COPY 
-
-
+        calendar.render();        
         } else {
             calendarObj.setOption('resources', Array.from(machineSet).sort().map(m => ({ id: m, title: m })));
             calendarObj.removeAllEvents();
