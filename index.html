@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JAPAN MC - Production Control PRO</title>
+    <title>JAPAN MC - Plan vs Actual PRO</title>
     <!-- Tải thư viện lịch FullCalendar -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.11/index.global.min.js"></script>
@@ -12,13 +12,12 @@
         body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background: #f3f4f6; font-size: 11px; height: 100vh; overflow: hidden; }
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; position: relative; }
         
-        /* ĐỒNG HỒ ĐIỆN TỬ */
         #currentTime { 
-            font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; color: #00ff00; 
-            background: #000; padding: 4px 10px; border-radius: 4px; border: 1px solid #fff;
+            font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold; color: #00ff00; 
+            background: #000000; padding: 4px 12px; border-radius: 6px; border: 2px solid #ffffff;
         }
 
-        .content { padding: 0; height: calc(100vh - 60px); position: relative; overflow: hidden; }
+        .content-wrapper { position: relative; height: calc(100vh - 60px); width: 100%; }
 
         /* NÚT CHUYỂN TRANG */
         .btn-nav { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; margin-left: 5px; }
@@ -28,10 +27,9 @@
         .page-layer { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             padding: 8px; box-sizing: border-box; background: #f3f4f6;
-            display: flex; flex-direction: column;
-            visibility: hidden; opacity: 0; transition: opacity 0.2s; 
+            display: none; flex-direction: column; 
         }
-        .active-layer { visibility: visible !important; opacity: 1 !important; z-index: 100; }
+        #timeline-layer { display: flex; } /* Mặc định hiện Timeline */
 
         /* KPI */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
@@ -50,7 +48,7 @@
         .fc-datagrid-cell-main { font-weight: bold; font-size: 12px; }
         .btn-refresh { background: #fff; color: #16a34a; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        /* BẢNG SHINKO RISUTO */
+        /* BẢNG SHINKO RISUTO (HIỆN TRẠNG HÀNG) */
         .table-container { background: white; border-radius: 6px; flex: 1; overflow: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .shinko-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
         .shinko-table thead th { background: #16a34a; color: white; position: sticky; top: 0; padding: 10px 5px; font-size: 10px; border: 1px solid #eee; z-index: 10; }
@@ -59,7 +57,10 @@
         
         /* MÀU THỨ 7 / CN */
         .sat-day { background-color: #f0f7ff !important; } 
-        .sun-day { background-color: #fff5f5 !important; }
+        .sun-day { background-color: #fff5f5 !important; } 
+        .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
+        .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
+
         .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
         .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
     </style>
@@ -76,9 +77,9 @@
     <div id="currentTime"></div>
 </div>
 
-<div class="content">
-    <!-- LỚP 1: TIMELINE -->
-    <div id="timeline-layer" class="page-layer active-layer">
+<div class="content-wrapper">
+    <!-- TRANG 1: TIMELINE LAYER -->
+    <div id="timeline-layer" class="page-layer">
         <div class="kpi-row">
             <div class="kpi-box"><div>RUNNING</div><div class="kpi-value" id="runCount">0</div></div>
             <div class="kpi-box"><div>WAITING</div><div class="kpi-value" id="waitCount">0</div></div>
@@ -88,7 +89,7 @@
         <div id="calendar"></div>
     </div>
 
-    <!-- LỚP 2: SHINKO RISUTO -->
+    <!-- TRANG 2: SHINKO RISUTO LAYER -->
     <div id="status-layer" class="page-layer">
         <div class="table-container">
             <table class="shinko-table">
@@ -101,7 +102,7 @@
 
 <script>
 /* =========================================
-   1. LIÊN KẾT DỮ LIỆU
+   1. LIÊN KẾT DỮ LIỆU (ID & GID)
    ========================================= */
 const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=2118073741';
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
@@ -116,81 +117,77 @@ function stringToColor(str) {
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
-/* --- BỘ GIẢI MÃ NGÀY THÁNG MẠNH MẼ --- */
+/* --- GIẢI MÃ NGÀY THÁNG THÔNG MINH --- */
 function superSmartParse(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return null;
     try {
         let parts = dStr.split(' ');
         let datePart = parts[0];
         let timePart = parts[1] || "00:00:00";
-        let d = datePart.split(/[/-]/);
-        let y, m, day;
-        if (d[0].length === 4) { y = d[0]; m = d[1]; day = d[2]; } 
-        else { y = d[2]; m = d[1]; day = d[0]; }
+        let sep = datePart.includes('/') ? '/' : '-';
+        let items = datePart.split(sep);
+        let y, m, d;
+        if (items[0].length === 4) { y = items[0]; m = items[1]; d = items[2]; } 
+        else { y = items[2]; m = items[1]; d = items[0]; }
         if (y.length === 2) y = "20" + y;
         if (parseInt(y) < 2000) return null;
-        return `${y}-${m.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${timePart}`;
     } catch (e) { return null; }
 }
 
+/* --- HÀM TẢI CSV AN TOÀN - CHỐNG TREO TRANG --- */
 async function fetchCSV(url) {
     try {
         const response = await fetch(url + '&t=' + new Date().getTime());
+        if (!response.ok) return [];
         const text = await response.text();
         const rows = text.split(/\r?\n/).filter(l => l.trim() !== "").map(r => 
             r.split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim())
         );
         const headers = rows[0];
-        return rows.slice(1).map(row => {
-            let obj = {};
-            headers.forEach((h, i) => { if(h) obj[h] = row[i]; });
-            return obj;
+        return rows.slice(1).map(r => {
+            let o = {}; headers.forEach((h, i) => { if(h) o[h] = r[i]; });
+            return o;
         });
     } catch (e) { return []; }
 }
 
-/* =========================================
-   2. HÀM CHUYỂN ĐỔI TRANG (FIX LỖI TRẮNG)
-   ========================================= */
+/* --- HÀM CHUYỂN TRANG --- */
 function switchPage(page) {
-    const timelineLayer = document.getElementById('timeline-layer');
-    const statusLayer = document.getElementById('status-layer');
-    const btnTimeline = document.getElementById('btnTimeline');
-    const btnStatus = document.getElementById('btnStatus');
+    const tl = document.getElementById('timeline-layer');
+    const st = document.getElementById('status-layer');
+    const btnT = document.getElementById('btnTimeline');
+    const btnS = document.getElementById('btnStatus');
 
     if (page === 'timeline') {
-        timelineLayer.classList.add('active-layer');
-        statusLayer.classList.remove('active-layer');
-        btnTimeline.classList.add('btn-active');
-        btnStatus.classList.remove('btn-active');
+        tl.style.display = 'flex';
+        st.style.display = 'none';
+        btnT.classList.add('btn-active');
+        btnS.classList.remove('btn-active');
         if (calendarObj) { calendarObj.updateSize(); }
     } else {
-        statusLayer.classList.add('active-layer');
-        timelineLayer.classList.remove('active-layer');
-        btnStatus.classList.add('btn-active');
-        btnTimeline.classList.remove('btn-active');
+        tl.style.display = 'none';
+        st.style.display = 'flex';
+        btnS.classList.add('btn-active');
+        btnT.classList.remove('btn-active');
     }
 }
 
-/* =========================================
-   3. KHỞI TẠO ỨNG DỤNG
-   ========================================= */
+/* --- KHỞI TẠO ỨNG DỤNG --- */
 async function initApp() {
     try {
-        const [dataPlan, dataActual, dataMaster] = await Promise.all([
-            fetchCSV(urlPlan), 
-            fetchCSV(urlActual),
-            fetchCSV(urlMaster)
-        ]);
+        // Tải dữ liệu an toàn từng file một
+        const dataPlan = await fetchCSV(urlPlan);
+        const dataActual = await fetchCSV(urlActual);
+        const dataMaster = await fetchCSV(urlMaster);
 
         let machineSet = new Set(), events = [];
         let run=0, wait=0, delay=0, qty=0;
 
-        // 1. XỬ LÝ KẾ HOẠCH (Dòng màu)
+        // 1. Xử lý Kế hoạch (Timeline)
         dataPlan.forEach(item => {
             const m = item["Ten_May"], j = item["Ma_Hang"], s = superSmartParse(item["Ngay_Bat_Dau"]), e = superSmartParse(item["Ngay_Ket_Thuc"]);
-            if (!m || !j || !s) return;
-            machineSet.add(m);
+            if (!m || !j || !s) return; machineSet.add(m);
             const status = (item["Status"] || "").toUpperCase();
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
@@ -198,11 +195,10 @@ async function initApp() {
             events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "" }, sortOrder: 1 });
         });
 
-        // 2. XỬ LÝ THỰC TẾ (Hàng vàng nhạt)
+        // 2. Xử lý Thực tế (Timeline)
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = superSmartParse(item["thoi_diem_bat_dau"]), e = superSmartParse(item["thoi_diem_hoan_thanh"]);
-            if (!m || !j || !s) return;
-            machineSet.add(m);
+            if (!m || !j || !s) return; machineSet.add(m);
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
             events.push({ resourceId: m, title: "ACTUAL: " + j + " (" + (step || "") + ")", start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" }, sortOrder: 2 });
         });
@@ -231,19 +227,21 @@ async function initApp() {
             calendarObj.addEventSource(events);
         }
 
-        // 3. XỬ LÝ BẢNG SHINKO RISUTO (ĐỦ 33 CỘT)
-        const tableCols = ["id_ma_hang", "ma_ban_ve", "ngay_dat_hang", "han_giao_khach", "so_luong", "PhanXuong_SX", "ngaycd_ana", "ngaycd_arai", "ngaycd_QT", "ngaycd_mc1", "ngaycd_mc2", "ngaycd_mc3", "ngaycd_mc4", "ngaycd_mc5", "ngaycd_mc6", "ngaycd_mc7", "ngaycd_edm", "ngaycd_wire", "ngaycd_Coating", "ngaycd_Kensa", "ngay_kensa", "ngay_coating", "vat_lieu_bv", "do_cung", "loai_xlbm", "barcode", "ma_khach_hang", "ma_po_khach", "part_Name", "part_no", "ghi_chu1", "ghi_chu2", "ghi_chu3"];
-        document.getElementById('tableHeader').innerHTML = "<tr>" + tableCols.map(c => `<th>${c.toUpperCase().replace('NGAYCD_','')}</th>`).join('') + "</tr>";
-        document.getElementById('tableBody').innerHTML = dataMaster.map(row => "<tr>" + tableCols.map(c => `<td>${(row[c] || "").split(' ')[0]}</td>`).join('') + "</tr>").join('');
+        // 3. XỬ LÝ BẢNG SHINKO RISUTO (ĐÚNG 33 CỘT)
+        if (dataMaster.length > 0) {
+            const tableCols = ["id_ma_hang", "ma_ban_ve", "ngay_dat_hang", "han_giao_khach", "so_luong", "PhanXuong_SX", "ngaycd_ana", "ngaycd_arai", "ngaycd_QT", "ngaycd_mc1", "ngaycd_mc2", "ngaycd_mc3", "ngaycd_mc4", "ngaycd_mc5", "ngaycd_mc6", "ngaycd_mc7", "ngaycd_edm", "ngaycd_wire", "ngaycd_Coating", "ngaycd_Kensa", "ngay_kensa", "ngay_coating", "vat_lieu_bv", "do_cung", "loai_xlbm", "barcode", "ma_khach_hang", "ma_po_khach", "part_Name", "part_no", "ghi_chu1", "ghi_chu2", "ghi_chu3"];
+            document.getElementById('tableHeader').innerHTML = "<tr>" + tableCols.map(c => `<th>${c.toUpperCase().replace('NGAYCD_','')}</th>`).join('') + "</tr>";
+            document.getElementById('tableBody').innerHTML = dataMaster.map(row => "<tr>" + tableCols.map(c => `<td>${(row[c] || "").split(' ')[0]}</td>`).join('') + "</tr>").join('');
+        }
 
         document.getElementById('runCount').innerText = run; document.getElementById('waitCount').innerText = wait;
         document.getElementById('delayCount').innerText = delay; document.getElementById('outputQty').innerText = qty;
-    } catch (e) { console.error("Error:", e); }
+    } catch (e) { console.error("App Init Error:", e); }
 }
 
 function updateClock() { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }
 setInterval(updateClock, 1000); 
-setInterval(initApp, 10000); // Tự động làm mới mỗi 10s
+setInterval(initApp, 10000); // Tự động làm mới mỗi 10 giây
 initApp();
 </script>
 </body>
