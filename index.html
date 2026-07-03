@@ -14,7 +14,8 @@
         /* --- THANH TIÊU ĐỀ & ĐỒNG HỒ --- */
         .header { background: #16a34a; color: white; padding: 5px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2000; position: relative; }
         #currentTime { 
-            font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold; color: #00ff00; 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 18px; font-weight: bold; color: #00ff00; 
             background: #000000; padding: 4px 12px; border-radius: 6px; border: 2px solid #ffffff;
             box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
         }
@@ -37,29 +38,26 @@
 
 
 
-        /* --- CHỈ SỐ KPI --- */
+        /* --- STYLE TIMELINE --- */
         .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         .kpi-box { background: white; padding: 5px; flex: 1; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
         .kpi-value { font-size: 18px; font-weight: bold; color: #16a34a; }
-
-        /* --- KHUNG LỊCH --- */
         #calendar { background: white; border-radius: 6px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* --- MÀU NỀN CỘT THỨ 7 / CN --- */
-        .sat-day { background-color: #e6f7ff !important; } 
-        .sun-day { background-color: #fff1f0 !important; } 
         .past-day { background-color: #fcf9e8 !important; } 
         .today-day { background-color: #f6ffed !important; border-left: 1px solid #52c41a !important; }
         .fc-timeline-now-indicator-line { border-left: 2px solid red !important; z-index: 10; }
 
-        /* Màu chữ Thứ 7/CN trên tiêu đề */
-        /*.fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; } */
-        /*.fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; } */
-        .fc-timeline-slot-label-sat { color: #0050b3 !important; font-weight: bold; background-color: #f0f7ff !important; }
-        .fc-timeline-slot-label-sun { color: #cf1322 !important; font-weight: bold; background-color: #fff5f5 !important; }
-
-
-
+        /* ============================================================
+           CHỈNH SỬA TÔ MÀU THỨ 7/CN (CSS ƯU TIÊN CAO)
+           ============================================================ */
+        /* Màu nền cột trong lịch */
+        .sat-bg { background-color: #e6f7ff !important; } 
+        .sun-bg { background-color: #fff1f0 !important; }
+        /* Màu chữ trên tiêu đề */
+        .sat-text { color: #0050b3 !important; font-weight: bold !important; background-color: #e6f7ff !important; }
+        .sun-text { color: #cf1322 !important; font-weight: bold !important; background-color: #fff1f0 !important; }
+        /* ============================================================ */
 
 
         /* --- THANH CÔNG VIỆC --- */
