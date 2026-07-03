@@ -236,10 +236,6 @@ async function initApp() {
                 resources: Array.from(machineSet).sort().map(m => ({ id: m, title: m })),
                 events: events,
                 resourceLabelDidMount: function(arg) { arg.el.style.color = stringToColor(arg.resource.id); },
-
-                /* ============================================================
-                   PHẦN CHỈNH SỬA: TÔ MÀU THỨ 7/CN (LOGIC MỚI)
-                   ============================================================ */
                 slotDidMount: function(arg) {
                     const day = arg.date.getDay();
                     if (day === 6) arg.el.classList.add('sat-bg'); // Thứ 7
@@ -250,9 +246,7 @@ async function initApp() {
                     if (day === 6) arg.el.classList.add('sat-text'); // Thứ 7
                     if (day === 0) arg.el.classList.add('sun-text'); // Chủ Nhật
                 },
-                /* ============================================================ */
-
-                eventClick: function(info) { alert("【" + info.event.resourceId + "】\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
+                 eventClick: function(info) { alert("【" + info.event.resourceId + "】\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
             });
             calendarObj.render();
         } else {
