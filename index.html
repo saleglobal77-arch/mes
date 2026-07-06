@@ -137,8 +137,7 @@ const urlPlan = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnI
 const urlActual = 'https://docs.google.com/spreadsheets/d/1-W2hyNIveWmDyphGcv-182js9oGPHNrk/gviz/tq?tqx=out:csv&gid=1473866023';
 const urlMaster = 'https://docs.google.com/spreadsheets/d/1quE1eL4Sa6Nl6VRaBWSEbnIJ3RwTYHOt/gviz/tq?tqx=out:csv&gid=799317234';
 
-let calendarObj, calendarJobObj;
-let globalPlan = [], globalActual = [];
+let calendarObj;
 
 function stringToColor(str) {
     if(!str) return '#16a34a';
@@ -147,34 +146,44 @@ function stringToColor(str) {
     return `hsl(${Math.abs(hash * 137) % 360}, 80%, 40%)`;
 }
 
+/* --- HÀM GIẢI MÃ NGÀY THÁNG THÔNG MINH (Xử lý lỗi năm 26 và định dạng VN/JP) --- */
 function smartParseDate(dStr) {
     if (!dStr || dStr.trim() === "" || dStr === "null") return null;
     try {
-        let datePart = dStr.split(' ')[0]; 
-        let parts = datePart.split(/[/-]/);
+        let datePart = dStr.split(' ')[0]; // Lấy phần ngày, bỏ phần giờ 0:00
+        let parts = datePart.includes('/') ? datePart.split('/') : datePart.split('-');
+        
         if (parts.length === 3) {
-            let y = parts[2].length === 2 ? "20" + parts[2] : parts[2];
-            if (parts[0].length === 4) return datePart; 
-            return `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            let y = parts[0].length === 4 ? parts[0] : parts[2]; // Tìm năm
+            let m = parts[0].length === 4 ? parts[1] : parts[1]; // Tìm tháng
+            let d = parts[0].length === 4 ? parts[2] : parts[0]; // Tìm ngày
+            
+            if (y.length === 2) y = "20" + y; // Sửa lỗi 26 -> 2026
+            return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
         }
         return datePart;
     } catch (e) { return null; }
 }
 
+/* --- HÀM TẢI CSV AN TOÀN --- */
 async function fetchCSV(url) {
     try {
         const response = await fetch(url + '&t=' + new Date().getTime());
         const text = await response.text();
-        const rows = text.split(/\r?\n/).filter(l => l.trim() !== "").map(r => 
-            r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"(.*)"$/, '$1').trim())
-        );
-        const headers = rows[0];
-        return rows.slice(1).map(r => {
-            let o = {}; headers.forEach((h, i) => { if(h) o[h] = r[i]; });
-            return o;
+        const rows = text.split(/\r?\n/).filter(l => l.trim() !== "").map(row => {
+            // REGEX NÀY GIÚP TÁCH CỘT NHƯNG BỎ QUA DẤU PHẨY NẰM TRONG NGOẶC KÉP (qui_trinh_gc)
+            return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"(.*)"$/, '$1').trim());
         });
-    } catch (e) { return []; }
+        const headers = rows[0];
+        return rows.slice(1).map(row => {
+            let obj = {};
+            headers.forEach((h, i) => { if(h) obj[h] = row[i]; });
+            return obj;
+        });
+    } catch (e) { console.error("Lỗi tải file:", e); return []; }
 }
+
+
 
 function switchPage(page) {
     const layers = ['timeline-layer', 'status-layer', 'job-timeline-layer'];
