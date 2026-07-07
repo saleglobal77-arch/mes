@@ -259,8 +259,8 @@ function openJobTimeline(jobId) {
         slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
         slotDidMount: function(arg) {
             const day = arg.date.getDay();
-            if (day === 6) arg.el.style.backgroundColor = '#f0f7ff';
-            if (day === 0) arg.el.style.backgroundColor = '#fff5f5';
+            if(day===6)arg.el.classList.add('sat-bg');
+            if(day===0)arg.el.classList.add('sun-bg');
         },
         slotLabelDidMount:function(arg){const day=arg.date.getDay();if(day===6)arg.el.classList.add('sat-text');if(day===0)arg.el.classList.add('sun-text');}
     });
@@ -321,7 +321,14 @@ async function initApp() {
         });
 
         const calendarEl = document.getElementById('calendar');
-        calendarEl.innerHTML = '';
+        calendarEl.innerHTML = '';        slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
+        slotDidMount: function(arg) {
+            const day = arg.date.getDay();
+            if(day===6)arg.el.classList.add('sat-bg');
+            if(day===0)arg.el.classList.add('sun-bg');
+        },
+        slotLabelDidMount:function(arg){const day=arg.date.getDay();if(day===6)arg.el.classList.add('sat-text');if(day===0)arg.el.classList.add('sun-text');}
+    });
         calendarObj = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth', locale: 'ja', height: '100%', resourceAreaWidth: '250px',
