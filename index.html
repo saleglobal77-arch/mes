@@ -226,8 +226,7 @@ function openJobTimeline(jobId) {
         events.push({
             resourceId: jobId, title: item["Ten_May"] + " (" + (item["Ten_Cong_Doan"] || "") + ")",
             start: s, end: endD.toISOString().split('T')[0],
-            backgroundColor: stringToColor(item["Ten_May"]), borderColor: stringToColor(item["Ten_May"]), sortOrder: 1,
-            extendedProps:{type:"PLAN",data:item}
+            backgroundColor: stringToColor(item["Ten_May"]), borderColor: stringToColor(item["Ten_May"]), sortOrder: 1
         });
     });
     // Actual: Hiện tên Máy
@@ -237,8 +236,7 @@ function openJobTimeline(jobId) {
         let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
         events.push({
             resourceId: jobId, title: "ACT: " + item["may_gia_cong"] + " (" + (item["thu_tu_gc"] || "") + ")",
-            start: s, end: endTime, className: 'actual-event', sortOrder: 2,
-            extendedProps:{type:"ACTUAL",data:item}
+            start: s, end: endTime, className: 'actual-event', sortOrder: 2
         });
     });
 
@@ -264,32 +262,6 @@ function openJobTimeline(jobId) {
         },
         slotLabelDidMount:function(arg){const day=arg.date.getDay();if(day===6)arg.el.classList.add('sat-text');if(day===0)arg.el.classList.add('sun-text');}
     });
-        eventClick:function(info){
-            const row=info.event.extendedProps.data||{};
-            const type=info.event.extendedProps.type||"";
-            let msg="";
-            if(type==="PLAN"){
-                msg="【PLAN】\n\n"+
-                "Mã hàng : "+(row["Ma_Hang"]||"")+"\n"+
-                "Máy : "+(row["Ten_May"]||"")+"\n"+
-                "Công đoạn : "+(row["Ten_Cong_Doan"]||"")+"\n"+
-                "Bắt đầu : "+(row["Ngay_Bat_Dau"]||"")+"\n"+
-                "Kết thúc : "+(row["Ngay_Ket_Thuc"]||"")+"\n"+
-                "Qty : "+(row["Qty"]||"")+"\n"+
-                "Status : "+(row["Status"]||"")+"\n"+
-                "Memo : "+(row["Memo"]||"");
-            }else{
-                msg="【ACTUAL】\n\n"+
-                "Mã bản vẽ : "+(row["ma_ban_ve"]||"")+"\n"+
-                "Máy : "+(row["may_gia_cong"]||"")+"\n"+
-                "Thứ tự GC : "+(row["thu_tu_gc"]||"")+"\n"+
-                "Bắt đầu : "+(row["thoi_diem_bat_dau"]||"")+"\n"+
-                "Hoàn thành : "+(row["thoi_diem_hoan_thanh"]||"")+"\n"+
-                "Trạng thái : "+(row["trang_thai"]||"");
-            }
-            alert(msg);
-        }
-    });
     calendarJobObj.render();
 }
 
@@ -310,25 +282,18 @@ async function initApp() {
             if(status === 'RUN') run++; else if(status === 'WAIT') wait++; else if(status === 'DELAY') delay++;
             qty += Number(item["Qty"] || 0);
             let endD = new Date(e || s); endD.setDate(endD.getDate() + 1);
-            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps: { memo: item["Memo"] || "" }, sortOrder: 1 });
+            events.push({ resourceId: m, title: j + " (" + (item["Ten_Cong_Doan"] || "") + ")", start: s, end: endD.toISOString().split('T')[0], backgroundColor: stringToColor(j), borderColor: stringToColor(j), extendedProps:{data:item,type:"PLAN"}, sortOrder: 1 });
         });
 
         dataActual.forEach(item => {
             const m = item["may_gia_cong"], j = item["ma_ban_ve"], step = item["thu_tu_gc"], s = smartParseDate(item["thoi_diem_bat_dau"]), e = smartParseDate(item["thoi_diem_hoan_thanh"]);
             if (!m || !j || !s) return; machineSet.add(m);
             let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
-            events.push({ resourceId: m, title: "ACTUAL: " + j, start: s, end: endTime, className: 'actual-event', extendedProps: { memo: "Actual Work" }, sortOrder: 2 });
+            events.push({ resourceId: m, title: "ACTUAL: " + j, start: s, end: endTime, className: 'actual-event', extendedProps:{data:item,type:"ACTUAL"}, sortOrder: 2 });
         });
 
         const calendarEl = document.getElementById('calendar');
-        calendarEl.innerHTML = '';        slotLabelFormat: [{ day: 'numeric' }, { weekday: 'short' }],
-        slotDidMount: function(arg) {
-            const day = arg.date.getDay();
-            if(day===6)arg.el.classList.add('sat-bg');
-            if(day===0)arg.el.classList.add('sun-bg');
-        },
-        slotLabelDidMount:function(arg){const day=arg.date.getDay();if(day===6)arg.el.classList.add('sat-text');if(day===0)arg.el.classList.add('sun-text');}
-    });
+        calendarEl.innerHTML = '';
         calendarObj = new FullCalendar.Calendar(calendarEl, {
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             initialView: 'resourceTimelineMonth', locale: 'ja', height: '100%', resourceAreaWidth: '250px',
