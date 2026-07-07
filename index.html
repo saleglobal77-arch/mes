@@ -262,6 +262,32 @@ function openJobTimeline(jobId) {
         },
         slotLabelDidMount:function(arg){const day=arg.date.getDay();if(day===6)arg.el.classList.add('sat-text');if(day===0)arg.el.classList.add('sun-text');}
     });
+        eventClick:function(info){
+            const row=info.event.extendedProps.data||{};
+            const type=info.event.extendedProps.type||"";
+            let msg="";
+            if(type==="PLAN"){
+                msg="【PLAN】\n\n"+
+                "Mã hàng : "+(row["Ma_Hang"]||"")+"\n"+
+                "Máy : "+(row["Ten_May"]||"")+"\n"+
+                "Công đoạn : "+(row["Ten_Cong_Doan"]||"")+"\n"+
+                "Bắt đầu : "+(row["Ngay_Bat_Dau"]||"")+"\n"+
+                "Kết thúc : "+(row["Ngay_Ket_Thuc"]||"")+"\n"+
+                "Qty : "+(row["Qty"]||"")+"\n"+
+                "Status : "+(row["Status"]||"")+"\n"+
+                "Memo : "+(row["Memo"]||"");
+            }else{
+                msg="【ACTUAL】\n\n"+
+                "Mã bản vẽ : "+(row["ma_ban_ve"]||"")+"\n"+
+                "Máy : "+(row["may_gia_cong"]||"")+"\n"+
+                "Thứ tự GC : "+(row["thu_tu_gc"]||"")+"\n"+
+                "Bắt đầu : "+(row["thoi_diem_bat_dau"]||"")+"\n"+
+                "Hoàn thành : "+(row["thoi_diem_hoan_thanh"]||"")+"\n"+
+                "Trạng thái : "+(row["trang_thai"]||"");
+            }
+            alert(msg);
+        }
+    });
     calendarJobObj.render();
 }
 
