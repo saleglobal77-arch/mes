@@ -226,7 +226,7 @@ function openJobTimeline(jobId) {
         events.push({
             resourceId: jobId, title: item["Ten_May"] + " (" + (item["Ten_Cong_Doan"] || "") + ")",
             start: s, end: endD.toISOString().split('T')[0],
-            backgroundColor: stringToColor(item["Ten_May"]), borderColor: stringToColor(item["Ten_May"]), sortOrder: 1
+            backgroundColor: stringToColor(item["Ten_May"]), borderColor: stringToColor(item["Ten_May"]), sortOrder: 1,extendedProps:{ type:"PLAN", data:item }
         });
     });
     // Actual: Hiện tên Máy
@@ -236,7 +236,7 @@ function openJobTimeline(jobId) {
         let endTime = e; if (!endTime || item["trang_thai"] === "Processing") endTime = new Date().toISOString();
         events.push({
             resourceId: jobId, title: "ACT: " + item["may_gia_cong"] + " (" + (item["thu_tu_gc"] || "") + ")",
-            start: s, end: endTime, className: 'actual-event', sortOrder: 2
+            start: s, end: endTime, className: 'actual-event', sortOrder: 2,extendedProps:{ type:"ACTUAL", data:item }
         });
     });
 
@@ -260,7 +260,32 @@ function openJobTimeline(jobId) {
             if(day===6)arg.el.classList.add('sat-bg');
             if(day===0)arg.el.classList.add('sun-bg');
         },
-        slotLabelDidMount:function(arg){const day=arg.date.getDay();if(day===6)arg.el.classList.add('sat-text');if(day===0)arg.el.classList.add('sun-text');}
+        slotLabelDidMount:function(arg){const day=arg.date.getDay();if(day===6)arg.el.classList.add('sat-text');if(day===0)arg.el.classList.add('sun-text');},
+        eventClick:function(info){
+            const row=info.event.extendedProps.data||{};
+            const type=info.event.extendedProps.type||"";
+            let msg="";
+            if(type==="PLAN"){
+                msg="【PLAN】\n\n"+
+                "Mã hàng : "+(row["Ma_Hang"]||"")+"\n"+
+                "Máy : "+(row["Ten_May"]||"")+"\n"+
+                "Công đoạn : "+(row["Ten_Cong_Doan"]||"")+"\n"+
+                "Bắt đầu : "+(row["Ngay_Bat_Dau"]||"")+"\n"+
+                "Kết thúc : "+(row["Ngay_Ket_Thuc"]||"")+"\n"+
+                "Qty : "+(row["Qty"]||"")+"\n"+
+                "Status : "+(row["Status"]||"")+"\n"+
+                "Memo : "+(row["Memo"]||"");
+            }else{
+                msg="【ACTUAL】\n\n"+
+                "Mã bản vẽ : "+(row["ma_ban_ve"]||"")+"\n"+
+                "Máy : "+(row["may_gia_cong"]||"")+"\n"+
+                "Thứ tự GC : "+(row["thu_tu_gc"]||"")+"\n"+
+                "Bắt đầu : "+(row["thoi_diem_bat_dau"]||"")+"\n"+
+                "Hoàn thành : "+(row["thoi_diem_hoan_thanh"]||"")+"\n"+
+                "Trạng thái : "+(row["trang_thai"]||"");
+            }
+            alert(msg);
+        }
     });
     calendarJobObj.render();
 }
@@ -312,7 +337,31 @@ async function initApp() {
                     if (day === 6) arg.el.classList.add('sat-text'); // Thứ 7
                     if (day === 0) arg.el.classList.add('sun-text'); // Chủ Nhật
                 },
-            eventClick: function(info) { alert("【" + info.event.resourceId + "】\n" + info.event.title + "\nMemo: " + info.event.extendedProps.memo); }
+        eventClick:function(info){
+            const row=info.event.extendedProps.data||{};
+            const type=info.event.extendedProps.type||"";
+            let msg="";
+            if(type==="PLAN"){
+                msg="【PLAN】\n\n"+
+                "Mã hàng : "+(row["Ma_Hang"]||"")+"\n"+
+                "Máy : "+(row["Ten_May"]||"")+"\n"+
+                "Công đoạn : "+(row["Ten_Cong_Doan"]||"")+"\n"+
+                "Bắt đầu : "+(row["Ngay_Bat_Dau"]||"")+"\n"+
+                "Kết thúc : "+(row["Ngay_Ket_Thuc"]||"")+"\n"+
+                "Qty : "+(row["Qty"]||"")+"\n"+
+                "Status : "+(row["Status"]||"")+"\n"+
+                "Memo : "+(row["Memo"]||"");
+            }else{
+                msg="【ACTUAL】\n\n"+
+                "Mã bản vẽ : "+(row["ma_ban_ve"]||"")+"\n"+
+                "Máy : "+(row["may_gia_cong"]||"")+"\n"+
+                "Thứ tự GC : "+(row["thu_tu_gc"]||"")+"\n"+
+                "Bắt đầu : "+(row["thoi_diem_bat_dau"]||"")+"\n"+
+                "Hoàn thành : "+(row["thoi_diem_hoan_thanh"]||"")+"\n"+
+                "Trạng thái : "+(row["trang_thai"]||"");
+            }
+            alert(msg);
+        }
         });
         calendarObj.render();
 
