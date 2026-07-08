@@ -397,7 +397,7 @@ async function initApp() {
 
 function updateClock() { document.getElementById('currentTime').innerText = new Date().toLocaleString('ja-JP'); }
 setInterval(updateClock, 1000); 
-setInterval(initApp, 15000); // 15s làm mới để tránh quá tải
+setInterval(initApp, 60000); // 60s làm mới để tránh quá tải
 initApp();
 </script>
 </body>
